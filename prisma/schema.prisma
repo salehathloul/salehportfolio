@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+}
+
+model SiteSettings {
+  id              String   @id @default("main")
+  logoLight       String?
+  logoDark        String?
+  titleAr         String?
+  titleEn         String?
+  descriptionAr   String?
+  descriptionEn   String?
+  socialInstagram String?
+  socialX         String?
+  socialBehance   String?
+  socialLinkedin  String?
+  socialEmail     String?
+  heroImageUrl    String?
+  heroQuoteAr     String?
+  heroQuoteEn     String?
+  fontHeadingUrl           String?
+  fontBodyUrl              String?
+  fontHeadingName          String?
+  fontBodyName             String?
+  // Site layout mode: "wide" (default, current) or "centered" (max-w-7xl centered)
+  layoutMode               String   @default("wide")
+  // Portfolio display settings
+  portfolioLayouts         String?  @default("grid,masonry,scattered") // comma-separated
+  portfolioDefaultLayout   String?  @default("masonry")
+  // Hero quote size: xs | sm | md | lg | xl
+  heroQuoteSize            String?  @default("md")
+  // Hero quote line height
+  heroQuoteLineHeight      String?  @default("1.5")
+  // Instagram section
+  showInstagram            Boolean  @default(false)
+  instagramUsername        String?
+  // Extended fonts: 4 separate slots (AR/EN × heading/body)
+  fontHeadingArUrl         String?
+  fontHeadingArName        String?
+  fontBodyArUrl            String?
+  fontBodyArName           String?
+  fontHeadingEnUrl         String?
+  fontHeadingEnName        String?
+  fontBodyEnUrl            String?
+  fontBodyEnName           String?
+  // Language-specific logos: AR/EN × light/dark
+  logoLightAr              String?
+  logoDarkAr               String?
+  logoLightEn              String?
+  logoDarkEn               String?
+  // Hero quote font weight
+  heroQuoteWeight          String?  @default("normal")  // normal|medium|semibold|bold
+  // Nav labels (custom names for main navigation sections)
+  navPortfolioAr           String?
+  navPortfolioEn           String?
+  navBlogAr                String?
+  navBlogEn                String?
+  navAcquireAr             String?
+  navAcquireEn             String?
+  navAboutAr               String?
+  navAboutEn               String?
+  navContactAr             String?
+  navContactEn             String?
+  // Nav visibility toggles
+  navPortfolioVisible      Boolean  @default(true)
+  navBlogVisible           Boolean  @default(true)
+  navAcquireVisible        Boolean  @default(true)
+  navAboutVisible          Boolean  @default(true)
+  navContactVisible        Boolean  @default(true)
+  updatedAt                DateTime @updatedAt
+}
+
+model Category {
+  id         String @id @default(cuid())
+  nameAr     String
+  nameEn     String
+  slug       String @unique
+  order      Int    @default(0)
+  works      Work[] @relation("WorkPrimaryCategory")
+  worksMulti Work[] @relation("WorkCategories")
+}
+
+model Work {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  titleAr       String
+  titleEn       String
+  locationAr    String?
+  locationEn    String?
+  descriptionAr String?
+  descriptionEn String?
+  imageUrl      String
+  width         Int
+  height        Int
+  dateTaken     DateTime?
+  category      Category?    @relation("WorkPrimaryCategory", fields: [categoryId], references: [id])
+  categoryId    String?
+  categories    Category[]   @relation("WorkCategories")  // تعدد التصنيفات
+  order         Int          @default(0)
+  isPublished   Boolean      @default(true)
+  isFeatured    Boolean      @default(false)
+  lat           Float?       // خط العرض للخريطة
+  lng           Float?       // خط الطول للخريطة
+  mapsUrl       String?      // رابط Google Maps مباشر
+  acquireItem   AcquireItem?
+  images        WorkImage[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model WorkImage {
+  id      String @id @default(cuid())
+  work    Work   @relation(fields: [workId], references: [id], onDelete: Cascade)
+  workId  String
+  url     String
+  order   Int    @default(0)
+}
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  titleAr     String
+  titleEn     String
+  coverImage  String?
+  contentAr   Json
+  contentEn   Json?
+  status      String    @default("draft")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AcquireItem {
+  id        String        @id @default(cuid())
+  work      Work          @relation(fields: [workId], references: [id])
+  workId    String        @unique
+  isActive  Boolean       @default(true)
+  specs     Json?         // Array of { labelAr: string; labelEn: string; value: string }
+  sizes     AcquireSize[]
+  orders    Order[]
+  createdAt DateTime      @default(now())
+}
+
+model AcquireSize {
+  id            String      @id @default(cuid())
+  acquireItem   AcquireItem @relation(fields: [acquireItemId], references: [id])
+  acquireItemId String
+  label         String
+  totalEditions Int
+  soldEditions  Int         @default(0)
+  orders        Order[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  acquireItem   AcquireItem @relation(fields: [acquireItemId], references: [id])
+  acquireItemId String
+  size          AcquireSize @relation(fields: [sizeId], references: [id])
+  sizeId        String
+  customerName  String
+  customerEmail String
+  customerPhone String
+  message       String?
+  status        String      @default("new")
+  notes         String?
+  priceSent     Float?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  category  String
+  message   String
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+}
+
+model FontAsset {
+  id        String   @id @default(cuid())
+  name      String   // اسم الخط للعرض (مثل: "Futura Display")
+  url       String   // رابط الملف المرفوع
+  format    String   @default("woff2")  // woff2 | otf | ttf | woff
+  createdAt DateTime @default(now())
+}
+
+model About {
+  id           String   @id @default("main")
+  layout       String   @default("classic") // classic | stacked | portrait | minimal
+  imageUrl     String?
+  nameAr       String?
+  nameEn       String?
+  bioAr        String?
+  bioEn        String?
+  experience   Json?    // Array of {titleAr, titleEn, orgAr, orgEn, period, descAr, descEn}
+  achievements Json?    // Array of {titleAr, titleEn, year, descAr, descEn}
+  updatedAt    DateTime @updatedAt
+}

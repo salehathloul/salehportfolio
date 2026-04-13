@@ -1,0 +1,105 @@
+{
+  "nav": {
+    "portfolio": "Portfolio",
+    "blog": "Journal",
+    "acquire": "Acquire",
+    "about": "About",
+    "contact": "Contact",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode",
+    "toggle": "Toggle theme"
+  },
+  "language": {
+    "ar": "العربية",
+    "en": "English",
+    "switch": "Switch language"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "madeWith": "Personal website"
+  },
+  "home": {
+    "viewPortfolio": "View Portfolio",
+    "latestWorks": "Latest Works",
+    "viewAll": "View All"
+  },
+  "portfolio": {
+    "title": "Portfolio",
+    "allCategories": "All",
+    "noWorks": "No works in this category",
+    "showInfo": "Show info",
+    "hideInfo": "Hide info",
+    "viewFull": "View full",
+    "editions": "editions",
+    "layout": {
+      "grid": "Uniform grid",
+      "masonry": "Proportional grid",
+      "scattered": "Free layout"
+    }
+  },
+  "blog": {
+    "title": "Journal",
+    "readMore": "Read more",
+    "publishedOn": "Published on",
+    "noPosts": "No posts yet"
+  },
+  "acquire": {
+    "title": "Acquire",
+    "subtitle": "Limited editions — Fine art photography",
+    "requestAcquire": "Acquire",
+    "soldOut": "Sold out",
+    "editions": "editions",
+    "remaining": "remaining",
+    "details": "Details",
+    "availableSizes": "Available sizes",
+    "specifications": "Specifications",
+    "selectSize": "Select size",
+    "form": {
+      "name": "Full name",
+      "email": "Email address",
+      "phone": "Phone number",
+      "message": "Why does this work appeal to you?",
+      "submit": "Submit request",
+      "submitting": "Submitting...",
+      "success": "Your request has been sent, I'll be in touch soon",
+      "error": "Something went wrong, please try again",
+      "namePlaceholder": "Enter your name",
+      "emailPlaceholder": "example@email.com",
+      "phonePlaceholder": "+966 5X XXX XXXX",
+      "messagePlaceholder": "Share why this work resonates with you..."
+    }
+  },
+  "about": {
+    "title": "About"
+  },
+  "contact": {
+    "title": "Contact",
+    "subtitle": "I'd love to hear from you",
+    "form": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "category": "Subject",
+      "message": "Your message",
+      "submit": "Send",
+      "submitting": "Sending...",
+      "success": "Message received, I'll get back to you soon",
+      "error": "Something went wrong, please try again",
+      "categories": {
+        "collaboration": "Collaboration",
+        "inquiry": "Inquiry",
+        "acquisition": "Acquisition",
+        "media": "Media",
+        "other": "Other"
+      }
+    }
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "backHome": "Back to home"
+  }
+}

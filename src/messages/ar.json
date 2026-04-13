@@ -1,0 +1,105 @@
+{
+  "nav": {
+    "portfolio": "المعرض",
+    "blog": "المدونة",
+    "acquire": "اقتناء",
+    "about": "عني",
+    "contact": "تواصل",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة"
+  },
+  "theme": {
+    "light": "الوضع الفاتح",
+    "dark": "الوضع الداكن",
+    "toggle": "تبديل الوضع"
+  },
+  "language": {
+    "ar": "العربية",
+    "en": "English",
+    "switch": "تغيير اللغة"
+  },
+  "footer": {
+    "rights": "جميع الحقوق محفوظة",
+    "madeWith": "موقع شخصي"
+  },
+  "home": {
+    "viewPortfolio": "استعرض المعرض",
+    "latestWorks": "أحدث الأعمال",
+    "viewAll": "عرض الكل"
+  },
+  "portfolio": {
+    "title": "المعرض",
+    "allCategories": "الكل",
+    "noWorks": "لا توجد أعمال في هذا التصنيف",
+    "showInfo": "عرض المعلومات",
+    "hideInfo": "إخفاء المعلومات",
+    "viewFull": "عرض كامل",
+    "editions": "نسخة",
+    "layout": {
+      "grid": "شبكة منتظمة",
+      "masonry": "شبكة متناسبة",
+      "scattered": "توزيع حر"
+    }
+  },
+  "blog": {
+    "title": "المدونة",
+    "readMore": "اقرأ المزيد",
+    "publishedOn": "نُشر في",
+    "noPosts": "لا توجد تدوينات بعد"
+  },
+  "acquire": {
+    "title": "اقتناء",
+    "subtitle": "نسخ محدودة — فوتوغرافيا فنية",
+    "requestAcquire": "اقتناء",
+    "soldOut": "نفدت النسخ",
+    "editions": "نسخة",
+    "remaining": "متبقية",
+    "details": "معلومات",
+    "availableSizes": "المقاسات المتاحة",
+    "specifications": "المواصفات",
+    "selectSize": "اختر المقاس",
+    "form": {
+      "name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الجوال",
+      "message": "لماذا يستهويك هذا العمل؟",
+      "submit": "إرسال الطلب",
+      "submitting": "جاري الإرسال...",
+      "success": "تم إرسال طلبك، سيتم التواصل معك قريباً",
+      "error": "حدث خطأ، يرجى المحاولة مرة أخرى",
+      "namePlaceholder": "أدخل اسمك",
+      "emailPlaceholder": "example@email.com",
+      "phonePlaceholder": "+966 5X XXX XXXX",
+      "messagePlaceholder": "شاركنا سبب اهتمامك بهذا العمل..."
+    }
+  },
+  "about": {
+    "title": "عني"
+  },
+  "contact": {
+    "title": "تواصل",
+    "subtitle": "يسعدني سماعك",
+    "form": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "phone": "الجوال (اختياري)",
+      "category": "موضوع التواصل",
+      "message": "رسالتك",
+      "submit": "إرسال",
+      "submitting": "جاري الإرسال...",
+      "success": "تم استلام رسالتك، سأتواصل معك قريباً",
+      "error": "حدث خطأ، يرجى المحاولة مرة أخرى",
+      "categories": {
+        "collaboration": "تعاون",
+        "inquiry": "استفسار",
+        "acquisition": "اقتناء",
+        "media": "إعلام",
+        "other": "أخرى"
+      }
+    }
+  },
+  "errors": {
+    "notFound": "الصفحة غير موجودة",
+    "backHome": "العودة للرئيسية"
+  }
+}
