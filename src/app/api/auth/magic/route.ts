@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { generateMagicToken } from "@/lib/visitor-session";
 import { Resend } from "resend";
 
+export const dynamic = "force-dynamic";
+
 const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
 // ── POST /api/auth/magic — request magic link ─────────────────────────────────
