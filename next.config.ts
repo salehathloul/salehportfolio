@@ -4,6 +4,14 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/lib/i18n.ts");
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: [
+    "@prisma/client",
+    "@prisma/adapter-pg",
+    "pg",
+    "pg-native",
+    "@prisma/engines",
+    "prisma",
+  ],
   outputFileTracingExcludes: {
     "*": [
       "./node_modules/@prisma/engines/**",
