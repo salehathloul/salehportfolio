@@ -56,9 +56,10 @@ export async function POST(req: NextRequest) {
 
   const arrayBuffer = await file.arrayBuffer();
   const inputBuffer = Buffer.from(arrayBuffer);
+  const isSvg = file.type === "image/svg+xml";
 
   try {
-    const result = await uploadImage(inputBuffer, { folder });
+    const result = await uploadImage(inputBuffer, { folder, isSvg });
     return NextResponse.json({
       success: true,
       url: result.url,
