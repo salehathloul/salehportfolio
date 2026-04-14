@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
-export default function AdminMagicLoginPage() {
+function MagicLoginInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "error">("loading");
@@ -41,5 +41,19 @@ export default function AdminMagicLoginPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminMagicLoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <p>جاري التحميل...</p>
+      </div>
+    }>
+      <MagicLoginInner />
+    </Suspense>
   );
 }
