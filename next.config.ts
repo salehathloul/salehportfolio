@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
       "./node_modules/@prisma/engines/**",
       "./node_modules/prisma/libquery_engine-*",
       "./node_modules/@prisma/client/libquery_engine-*",
+      "./node_modules/.prisma/client/libquery_engine-*",
+      "./node_modules/@prisma/engines/query-engine-*",
+      "./node_modules/@prisma/engines/introspection-engine-*",
+      "./node_modules/@prisma/engines/migration-engine-*",
+      "./node_modules/@prisma/engines/schema-engine-*",
+      "./node_modules/@prisma/engines/prisma-fmt-*",
+      "./node_modules/prisma/engines/**",
     ],
   },
   images: {
