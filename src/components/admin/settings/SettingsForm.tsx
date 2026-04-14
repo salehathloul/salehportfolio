@@ -287,13 +287,20 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
     const canvas = document.createElement("canvas");
     const scaleX = cropImgRef.current.naturalWidth / cropImgRef.current.width;
     const scaleY = cropImgRef.current.naturalHeight / cropImgRef.current.height;
-    canvas.width = completedCrop.width * scaleX;
-    canvas.height = completedCrop.height * scaleY;
+
+    // Limit output to max 3000px on the long edge to stay under 10MB
+    const MAX_PX = 3000;
+    const rawW = completedCrop.width * scaleX;
+    const rawH = completedCrop.height * scaleY;
+    const downscale = Math.min(1, MAX_PX / Math.max(rawW, rawH));
+    canvas.width  = Math.round(rawW * downscale);
+    canvas.height = Math.round(rawH * downscale);
+
     const ctx = canvas.getContext("2d")!;
     ctx.drawImage(
       cropImgRef.current,
       completedCrop.x * scaleX, completedCrop.y * scaleY,
-      completedCrop.width * scaleX, completedCrop.height * scaleY,
+      rawW, rawH,
       0, 0, canvas.width, canvas.height
     );
     canvas.toBlob(async (blob) => {
@@ -305,10 +312,13 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
       if (res.ok) {
         const data = await res.json();
         setValue("heroImageUrl", data.url, { shouldDirty: true });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("[hero upload]", err);
       }
       setCropUploading(false);
       setCropSrc(null);
-    }, "image/jpeg", 0.92);
+    }, "image/jpeg", 0.88);
   }, [completedCrop, setValue]);
 
   return (

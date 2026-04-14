@@ -264,6 +264,8 @@ async function uploadWithProgress(
         } catch {
           reject(new Error("Invalid response"));
         }
+      } else if (xhr.status === 401) {
+        reject(new Error("انتهت الجلسة — أعد تسجيل الدخول"));
       } else {
         try {
           const data = JSON.parse(xhr.responseText);
