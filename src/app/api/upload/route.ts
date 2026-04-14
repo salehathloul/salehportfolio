@@ -3,14 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadImage } from "@/lib/cloudinary";
-import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
 const MAX_SIZE_MB = 50;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/tiff", "image/svg+xml"];
-const SVG_TYPE = "image/svg+xml";
 
 // Local fallback: saves to public/uploads/<folder>/ when Cloudinary isn't configured
 function isCloudinaryConfigured() {
@@ -32,6 +30,17 @@ async function saveLocally(
   return { url: `/uploads/${folder}/${filename}`, bytes: buffer.length };
 }
 
+function extFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/tiff": "tiff",
+    "image/svg+xml": "svg",
+  };
+  return map[mime] ?? "jpg";
+}
+
 export async function POST(req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────
   const session = await getServerSession(authOptions);
@@ -47,7 +56,6 @@ export async function POST(req: NextRequest) {
 
   const file = formData.get("file");
   const folder = (formData.get("folder") as string) ?? "portfolio";
-  const preserveFormat = formData.get("preserveFormat") === "true";
 
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -67,59 +75,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── SVG: save as-is (no sharp processing) ────────────
   const arrayBuffer = await file.arrayBuffer();
   const inputBuffer = Buffer.from(arrayBuffer);
+  const ext = extFromMime(file.type);
 
-  if (file.type === SVG_TYPE) {
-    try {
-      const local = await saveLocally(inputBuffer, folder, "svg");
-      return NextResponse.json({
-        success: true,
-        url: local.url,
-        width: 0,
-        height: 0,
-        publicId: null,
-        bytes: local.bytes,
-        sizes: { thumbnail: local.url, medium: local.url, large: local.url, original: local.url },
-      });
-    } catch (err) {
-      console.error("[upload] SVG save error:", err);
-      return NextResponse.json({ error: "فشل حفظ الملف" }, { status: 500 });
-    }
-  }
-
-  // ── Process with Sharp ────────────────────────────────
-  let processedBuffer: Buffer;
-  let width: number | undefined;
-  let height: number | undefined;
-
-  try {
-    const sharpInstance = sharp(inputBuffer);
-    const meta = await sharpInstance.metadata();
-    width = meta.width;
-    height = meta.height;
-
-    if (preserveFormat && meta.format === "png") {
-      processedBuffer = await sharpInstance.rotate().png({ quality: 95 }).toBuffer();
-    } else {
-      processedBuffer = await sharpInstance.rotate().jpeg({ quality: 95, progressive: true }).toBuffer();
-    }
-  } catch {
-    return NextResponse.json({ error: "فشل معالجة الصورة — تأكد أن الملف صورة صحيحة" }, { status: 422 });
-  }
-
-  const ext = preserveFormat ? "png" : "jpg";
-
-  // ── Upload ─────────────────────────────────────────────
+  // ── Upload to Cloudinary (handles processing server-side) ──
   if (isCloudinaryConfigured()) {
     try {
-      const result = await uploadImage(processedBuffer, { folder });
+      const result = await uploadImage(inputBuffer, { folder });
       return NextResponse.json({
         success: true,
         url: result.url,
-        width: width ?? result.width,
-        height: height ?? result.height,
+        width: result.width,
+        height: result.height,
         publicId: result.publicId,
         bytes: result.bytes,
         sizes: result.sizes,
@@ -132,12 +100,12 @@ export async function POST(req: NextRequest) {
 
   // ── Local fallback ─────────────────────────────────────
   try {
-    const local = await saveLocally(processedBuffer, folder, ext);
+    const local = await saveLocally(inputBuffer, folder, ext);
     return NextResponse.json({
       success: true,
       url: local.url,
-      width: width ?? 0,
-      height: height ?? 0,
+      width: 0,
+      height: 0,
       publicId: null,
       bytes: local.bytes,
       sizes: { thumbnail: local.url, medium: local.url, large: local.url, original: local.url },
