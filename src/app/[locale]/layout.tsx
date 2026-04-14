@@ -9,6 +9,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
+import { VisitorProvider } from "@/components/auth/VisitorContext";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://saleh-portfolio.vercel.app";
@@ -60,6 +61,11 @@ interface Settings {
   fontHeadingEnName: string | null;
   fontBodyEnUrl: string | null;
   fontBodyEnName: string | null;
+  analyticsGa4Id: string | null;
+  analyticsGtmId: string | null;
+  analyticsMetaPixelId: string | null;
+  analyticsTiktokPixelId: string | null;
+  analyticsSnapPixelId: string | null;
 }
 
 async function getSettings(): Promise<Settings | null> {
@@ -107,11 +113,87 @@ async function getSettings(): Promise<Settings | null> {
         navAcquireVisible: true,
         navAboutVisible: true,
         navContactVisible: true,
+        analyticsGa4Id: true,
+        analyticsGtmId: true,
+        analyticsMetaPixelId: true,
+        analyticsTiktokPixelId: true,
+        analyticsSnapPixelId: true,
       },
     });
   } catch {
     return null;
   }
+}
+
+// ── Build analytics <script> tags ────────────────────────────────────────────
+
+function buildAnalyticsScripts(settings: Settings | null): string {
+  if (!settings) return "";
+  const parts: string[] = [];
+
+  // Google Tag Manager (inject before GA4 if both present)
+  if (settings.analyticsGtmId) {
+    const id = settings.analyticsGtmId.trim();
+    parts.push(
+      `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});` +
+      `var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';` +
+      `j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);` +
+      `})(window,document,'script','dataLayer','${id}');`
+    );
+  }
+
+  // Google Analytics 4
+  if (settings.analyticsGa4Id) {
+    const id = settings.analyticsGa4Id.trim();
+    parts.push(
+      `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}` +
+      `gtag('js',new Date());gtag('config','${id}');`
+    );
+    // GA4 needs the loader script too — handled via a separate async src below
+  }
+
+  // Meta Pixel
+  if (settings.analyticsMetaPixelId) {
+    const id = settings.analyticsMetaPixelId.trim();
+    parts.push(
+      `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};` +
+      `if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;` +
+      `t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}` +
+      `(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');` +
+      `fbq('init','${id}');fbq('track','PageView');`
+    );
+  }
+
+  // TikTok Pixel
+  if (settings.analyticsTiktokPixelId) {
+    const id = settings.analyticsTiktokPixelId.trim();
+    parts.push(
+      `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];` +
+      `ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];` +
+      `ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};` +
+      `for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);` +
+      `ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};` +
+      `ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";` +
+      `ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};` +
+      `var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;` +
+      `var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};` +
+      `ttq.load('${id}');ttq.page();}(window,document,'ttq');`
+    );
+  }
+
+  // Snap Pixel
+  if (settings.analyticsSnapPixelId) {
+    const id = settings.analyticsSnapPixelId.trim();
+    parts.push(
+      `(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};` +
+      `a.queue=[];var s='script';r=t.createElement(s);r.async=!0;r.src=n;` +
+      `var u=t.getElementsByTagName(s)[0];u.parentNode.insertBefore(r,u);` +
+      `})(window,document,'https://sc-static.net/scevent.min.js');` +
+      `snaptr('init','${id}');snaptr('track','PAGE_VIEW');`
+    );
+  }
+
+  return parts.join("\n");
 }
 
 // ── Generate static params ────────────────────────────────────────────────────
@@ -187,6 +269,9 @@ export default async function LocaleLayout({
     getSettings(),
   ]);
 
+  // Analytics scripts — built server-side, injected once
+  const analyticsScripts = buildAnalyticsScripts(settings);
+
   // Inline font @font-face injected server-side — avoids flash of fallback font
   // Helper: emit @font-face + CSS variable override
   function fontFace(url: string | null | undefined, name: string | null | undefined, cssVar: string): string {
@@ -213,8 +298,17 @@ export default async function LocaleLayout({
         // eslint-disable-next-line react/no-danger
         <style dangerouslySetInnerHTML={{ __html: fontStyles }} />
       )}
+      {settings?.analyticsGa4Id && (
+        // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${settings.analyticsGa4Id}`} />
+      )}
+      {analyticsScripts && (
+        // eslint-disable-next-line react/no-danger
+        <script dangerouslySetInnerHTML={{ __html: analyticsScripts }} />
+      )}
 
       <LocaleProvider locale={locale} settings={settings}>
+        <VisitorProvider>
         <ToastProvider>
           <div className="site-layout" data-layout={settings?.layoutMode ?? "wide"}>
             <Header settings={settings} />
@@ -224,6 +318,7 @@ export default async function LocaleLayout({
             <Footer settings={settings} />
           </div>
         </ToastProvider>
+        </VisitorProvider>
       </LocaleProvider>
 
       <style>{`

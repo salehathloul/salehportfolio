@@ -80,6 +80,19 @@ model SiteSettings {
   navAcquireVisible        Boolean  @default(true)
   navAboutVisible          Boolean  @default(true)
   navContactVisible        Boolean  @default(true)
+  // Blog signature
+  blogSignatureAr          String?
+  blogSignatureEn          String?
+  blogSignaturePos         String   @default("bottom")  // "top" | "bottom"
+  blogSignatureOn          Boolean  @default(true)
+  // Per-page SEO (JSON): { portfolio: {titleAr, titleEn, descAr, descEn}, blog: {...}, acquire: {...}, about: {...}, contact: {...} }
+  pageSeoJson              String?
+  // Analytics & Marketing pixels
+  analyticsGa4Id           String?  // Google Analytics 4 Measurement ID (G-XXXXXXXXXX)
+  analyticsGtmId           String?  // Google Tag Manager Container ID (GTM-XXXXXXX)
+  analyticsMetaPixelId     String?  // Meta (Facebook) Pixel ID
+  analyticsTiktokPixelId   String?  // TikTok Pixel ID
+  analyticsSnapPixelId     String?  // Snap Pixel ID
   updatedAt                DateTime @updatedAt
 }
 
@@ -115,6 +128,13 @@ model Work {
   lat           Float?       // خط العرض للخريطة
   lng           Float?       // خط الطول للخريطة
   mapsUrl       String?      // رابط Google Maps مباشر
+  // EXIF Camera Data
+  exifCamera      String?   // الكاميرا: مثال "Sony A7R V"
+  exifLens        String?   // العدسة: مثال "85mm f/1.4"
+  exifAperture    String?   // فتحة العدسة: مثال "f/2.8"
+  exifShutter     String?   // سرعة الغالق: مثال "1/1000s"
+  exifIso         String?   // الحساسية: مثال "ISO 400"
+  exifFocalLength String?   // البُعد البؤري: مثال "50mm"
   acquireItem   AcquireItem?
   images        WorkImage[]
   createdAt     DateTime     @default(now())
@@ -130,17 +150,54 @@ model WorkImage {
 }
 
 model BlogPost {
-  id          String    @id @default(cuid())
-  slug        String    @unique
+  id          String        @id @default(cuid())
+  slug        String        @unique
   titleAr     String
   titleEn     String
   coverImage  String?
   contentAr   Json
   contentEn   Json?
-  status      String    @default("draft")
-  publishedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  status            String        @default("draft")
+  publishedAt       DateTime?
+  signatureDisabled Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  comments          BlogComment[]
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  visitor   Visitor? @relation(fields: [visitorId], references: [id], onDelete: SetNull)
+  visitorId String?
+  name      String
+  email     String
+  phone     String?
+  content   String
+  isHidden  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Visitor {
+  id          String        @id @default(cuid())
+  name        String
+  email       String        @unique
+  phone       String?
+  source      String?       // nav | blog | acquire
+  createdAt   DateTime      @default(now())
+  lastLoginAt DateTime      @default(now())
+  comments    BlogComment[]
+}
+
+model MagicToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  type      String    // "visitor" | "admin"
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model AcquireItem {
@@ -162,6 +219,7 @@ model AcquireSize {
   totalEditions Int
   soldEditions  Int         @default(0)
   orders        Order[]
+  waitlist      AcquireWaitlist[]
 }
 
 model Order {
@@ -211,4 +269,40 @@ model About {
   experience   Json?    // Array of {titleAr, titleEn, orgAr, orgEn, period, descAr, descEn}
   achievements Json?    // Array of {titleAr, titleEn, year, descAr, descEn}
   updatedAt    DateTime @updatedAt
+}
+
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  nameAr         String?
+  nameEn         String?
+  status         String    @default("active")  // active | unsubscribed
+  createdAt      DateTime  @default(now())
+  unsubscribedAt DateTime?
+}
+
+model AcquireWaitlist {
+  id        String      @id @default(cuid())
+  size      AcquireSize @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  sizeId    String
+  name      String
+  email     String
+  phone     String?
+  createdAt DateTime    @default(now())
+}
+
+model Exhibition {
+  id            String   @id @default(cuid())
+  titleAr       String
+  titleEn       String
+  locationAr    String?
+  locationEn    String?
+  year          Int
+  month         Int?
+  type          String   @default("solo")  // solo | group | award | publication
+  descriptionAr String?
+  descriptionEn String?
+  imageUrl      String?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
 }

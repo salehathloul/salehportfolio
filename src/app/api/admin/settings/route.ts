@@ -29,42 +29,64 @@ export async function PUT(req: NextRequest) {
   }
 
   // Strip unknown keys — only allow schema fields
-  const stringAllowed = [
+  // nullable String? fields — can be cleared to null
+  const nullableStringAllowed = [
     "logoLight", "logoDark",
     "logoLightAr", "logoDarkAr", "logoLightEn", "logoDarkEn",
     "titleAr", "titleEn",
     "descriptionAr", "descriptionEn",
     "socialInstagram", "socialX", "socialBehance", "socialLinkedin", "socialEmail",
-    "heroImageUrl", "heroQuoteAr", "heroQuoteEn", "heroQuoteSize", "heroQuoteLineHeight", "heroQuoteWeight",
+    "heroImageUrl", "heroQuoteAr", "heroQuoteEn",
     "fontHeadingUrl", "fontBodyUrl", "fontHeadingName", "fontBodyName",
     "fontHeadingArUrl", "fontHeadingArName",
     "fontBodyArUrl", "fontBodyArName",
     "fontHeadingEnUrl", "fontHeadingEnName",
     "fontBodyEnUrl", "fontBodyEnName",
     "instagramUsername",
-    "layoutMode",
     "navPortfolioAr", "navPortfolioEn",
     "navBlogAr", "navBlogEn",
     "navAcquireAr", "navAcquireEn",
     "navAboutAr", "navAboutEn",
     "navContactAr", "navContactEn",
+    "blogSignatureAr", "blogSignatureEn",
+    // hero quote style nullable fields
+    "heroQuoteSize", "heroQuoteLineHeight", "heroQuoteWeight",
+    // analytics & marketing pixels
+    "analyticsGa4Id", "analyticsGtmId",
+    "analyticsMetaPixelId", "analyticsTiktokPixelId", "analyticsSnapPixelId",
+    // per-page SEO (stored as JSON string)
+    "pageSeoJson",
+  ] as const;
+
+  // non-nullable String fields — skip update if value is falsy (keep DB value)
+  const requiredStringAllowed = [
+    "layoutMode",
+    "blogSignaturePos",
   ] as const;
 
   const boolAllowed = [
     "showInstagram",
     "navPortfolioVisible", "navBlogVisible", "navAcquireVisible",
     "navAboutVisible", "navContactVisible",
+    "blogSignatureOn",
   ] as const;
 
   const data: Record<string, string | null | boolean> = {};
-  for (const key of stringAllowed) {
+  for (const key of nullableStringAllowed) {
     if (key in body) {
       data[key] = body[key] ? String(body[key]) : null;
     }
   }
+  // Non-nullable string fields: only update when value is present and truthy
+  for (const key of requiredStringAllowed) {
+    if (key in body && body[key]) {
+      data[key] = String(body[key]);
+    }
+  }
   for (const key of boolAllowed) {
     if (key in body) {
-      data[key] = Boolean(body[key]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data[key] = Boolean((body as any)[key]);
     }
   }
 

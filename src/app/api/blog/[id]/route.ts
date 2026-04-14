@@ -25,7 +25,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
 
-  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status } = body;
+  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled } = body;
 
   // Slug uniqueness check (skip self)
   if (slug) {
@@ -53,6 +53,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       ...(contentAr !== undefined && { contentAr }),
       ...(contentEn !== undefined && { contentEn }),
       ...(status !== undefined && { status }),
+      ...(signatureDisabled !== undefined && { signatureDisabled }),
       ...(nowPublishing && { publishedAt: new Date() }),
     },
   });

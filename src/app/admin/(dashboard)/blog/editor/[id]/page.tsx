@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import TipTapRenderer from "@/components/blog/TipTapRenderer";
 
 // Load editor client-only (TipTap requires browser APIs)
 const BlogEditor = dynamic(() => import("@/components/admin/BlogEditor"), {
@@ -23,6 +24,7 @@ interface Post {
   contentEn: object | null;
   status: string;
   publishedAt: string | null;
+  signatureDisabled: boolean;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -62,6 +64,7 @@ export default function BlogEditorPage({
   const [slug, setSlug] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState("draft");
+  const [signatureDisabled, setSignatureDisabled] = useState(false);
   const [contentAr, setContentAr] = useState<object>({});
   const [contentEn, setContentEn] = useState<object>({});
 
@@ -85,6 +88,7 @@ export default function BlogEditorPage({
       setStatus(data.status);
       setContentAr(data.contentAr ?? {});
       setContentEn(data.contentEn ?? {});
+      setSignatureDisabled(data.signatureDisabled ?? false);
       setLoading(false);
     }
     load();
@@ -110,6 +114,7 @@ export default function BlogEditorPage({
         contentAr,
         contentEn,
         status: overrideStatus ?? status,
+        signatureDisabled,
       };
       const res = await fetch(`/api/blog/${id}`, {
         method: "PUT",
@@ -128,7 +133,7 @@ export default function BlogEditorPage({
         setTimeout(() => setSaveStatus("idle"), 3000);
       }
     },
-    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, id]
+    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, id]
   );
 
   // Auto-save on content change (debounce 3s)
@@ -284,6 +289,26 @@ export default function BlogEditorPage({
         </div>
       </div>
 
+      {/* ── Signature toggle ────────────────────────────────────────────── */}
+      <div className="editor-sig-row">
+        <label className="editor-sig-label">
+          <span className="editor-sig-icon">✍</span>
+          توقيع التدوينة
+        </label>
+        <label className="toggle-switch" style={{ transform: "scale(0.85)" }}>
+          <input
+            type="checkbox"
+            checked={!signatureDisabled}
+            onChange={(e) => { setSignatureDisabled(!e.target.checked); scheduleAutoSave(); }}
+            className="toggle-input"
+          />
+          <span className="toggle-track"><span className="toggle-thumb" /></span>
+        </label>
+        <span className="editor-sig-status">
+          {signatureDisabled ? "التوقيع مطفأ لهذه التدوينة" : "التوقيع مفعّل"}
+        </span>
+      </div>
+
       {/* ── Language Tabs ────────────────────────────────────────────────── */}
       <div className="editor-lang-tabs">
         <button
@@ -318,23 +343,26 @@ export default function BlogEditorPage({
         />
       </div>
 
-      {/* ── Preview ─────────────────────────────────────────────────────── */}
+      {/* ── Preview Modal ─────────────────────────────────────────────── */}
       {showPreview && (
-        <div className="editor-preview">
-          <h3 className="editor-preview-heading">معاينة</h3>
-          <div
-            className="editor-preview-body"
-            dir={activeLang === "ar" ? "rtl" : "ltr"}
-          >
-            <h1>{activeLang === "ar" ? titleAr : titleEn}</h1>
-            {coverImage && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverImage} alt="cover" style={{ width: "100%", borderRadius: "var(--radius-md)", marginBottom: "1.5rem" }} />
-            )}
-            {/* Simple JSON preview — real renderer will be on the public blog page */}
-            <pre style={{ fontSize: "0.75rem", color: "var(--text-muted)", overflow: "auto", maxHeight: "400px" }}>
-              {JSON.stringify(activeLang === "ar" ? contentAr : contentEn, null, 2)}
-            </pre>
+        <div className="preview-backdrop" onClick={() => setShowPreview(false)}>
+          <div className="preview-modal" onClick={e => e.stopPropagation()}>
+            <div className="preview-modal-header">
+              <span className="preview-modal-label">معاينة</span>
+              <button className="preview-modal-close" onClick={() => setShowPreview(false)} aria-label="إغلاق">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M12.5 3.5l-9 9M3.5 3.5l9 9"/>
+                </svg>
+              </button>
+            </div>
+            <div className="preview-modal-body" dir={activeLang === "ar" ? "rtl" : "ltr"}>
+              <h1 className="preview-title">{activeLang === "ar" ? titleAr : titleEn}</h1>
+              <div className="preview-divider" />
+              <TipTapRenderer
+                content={(activeLang === "ar" ? contentAr : contentEn) as object}
+                dir={activeLang === "ar" ? "rtl" : "ltr"}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -367,6 +395,60 @@ export default function BlogEditorPage({
         .editor-page-status-badge[data-status="hidden"] { color: #6b7280; }
 
         .editor-page-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+        /* Preview modal */
+        .preview-backdrop {
+          position: fixed; inset: 0; z-index: 300;
+          background: rgba(0,0,0,0.6);
+          backdrop-filter: blur(3px);
+          display: flex; align-items: flex-start; justify-content: center;
+          padding: 2rem 1rem;
+          overflow-y: auto;
+        }
+        .preview-modal {
+          width: 100%; max-width: 780px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+          min-height: 60vh;
+        }
+        .preview-modal-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 0.875rem 1.25rem;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-secondary);
+          position: sticky; top: 0; z-index: 1;
+        }
+        .preview-modal-label {
+          font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em;
+          text-transform: uppercase; color: var(--text-muted);
+        }
+        .preview-modal-close {
+          width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+          border: none; background: transparent; color: var(--text-muted); cursor: pointer;
+          border-radius: var(--radius-sm); transition: color var(--transition-fast), background var(--transition-fast);
+        }
+        .preview-modal-close:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+        .preview-modal-body {
+          padding: 2.5rem 3rem 4rem;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+        .preview-title {
+          font-family: var(--font-heading);
+          font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+          font-weight: 300;
+          letter-spacing: -0.02em;
+          line-height: 1.25;
+          color: var(--text-primary);
+          margin: 0 0 1.25rem;
+        }
+        .preview-divider {
+          height: 1px; background: var(--border-subtle);
+          margin-bottom: 2rem;
+        }
 
         .btn-primary {
           padding: 0.5rem 1.25rem;
@@ -434,6 +516,37 @@ export default function BlogEditorPage({
         @media (max-width: 640px) {
           .editor-meta-row { flex-direction: column; }
         }
+
+        .editor-sig-row {
+          display: flex; align-items: center; gap: 0.625rem;
+          background: var(--bg-primary); border: 1px solid var(--border);
+          border-radius: var(--radius-md); padding: 0.75rem 1rem;
+          margin-bottom: 1rem;
+        }
+        .editor-sig-label {
+          display: flex; align-items: center; gap: 0.4rem;
+          font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);
+          margin-inline-end: 0.25rem;
+        }
+        .editor-sig-icon { font-size: 1rem; line-height: 1; }
+        .editor-sig-status {
+          font-size: 0.8rem; color: var(--text-muted);
+        }
+        /* toggle-switch reuse from settings */
+        .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+        .toggle-input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle-track {
+          position: absolute; inset: 0; border-radius: 999px;
+          background: var(--border); cursor: pointer;
+          transition: background var(--transition-fast);
+        }
+        .toggle-input:checked + .toggle-track { background: var(--text-primary); }
+        .toggle-thumb {
+          position: absolute; top: 3px; left: 3px;
+          width: 14px; height: 14px; border-radius: 50%;
+          background: #fff; transition: transform var(--transition-fast);
+        }
+        .toggle-input:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
 
         .editor-lang-tabs {
           display: flex; gap: 0; margin-bottom: 0.75rem;

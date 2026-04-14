@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
@@ -11,7 +11,6 @@ export default function LanguageSwitcher() {
 
   function switchLocale() {
     const next = locale === "ar" ? "en" : "ar";
-    // Replace /{currentLocale}/... with /{nextLocale}/...
     const newPath = pathname.replace(`/${locale}`, `/${next}`);
     router.push(newPath);
   }
@@ -21,42 +20,55 @@ export default function LanguageSwitcher() {
       onClick={switchLocale}
       className="lang-switcher"
       aria-label={`Switch to ${locale === "ar" ? "English" : "Arabic"}`}
+      title={locale === "ar" ? "English" : "العربية"}
     >
-      <motion.span
-        key={locale}
-        initial={{ opacity: 0, y: -6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 6 }}
-        transition={{ duration: 0.2 }}
-        className="lang-label"
-      >
-        {locale === "ar" ? "EN" : "ع"}
-      </motion.span>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={locale}
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.7 }}
+          transition={{ duration: 0.18 }}
+          className="lang-icon"
+        >
+          {locale === "ar" ? (
+            /* Globe → switch to EN */
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3.6 9h16.8M3.6 15h16.8" />
+              <path d="M12 3a14.5 14.5 0 010 18M12 3a14.5 14.5 0 000 18" />
+            </svg>
+          ) : (
+            /* Globe → switch to AR */
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3.6 9h16.8M3.6 15h16.8" />
+              <path d="M12 3a14.5 14.5 0 010 18M12 3a14.5 14.5 0 000 18" />
+            </svg>
+          )}
+        </motion.span>
+      </AnimatePresence>
 
       <style>{`
         .lang-switcher {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0.2rem 0.55rem;
-          border: 1px solid var(--border);
+          width: 28px;
+          height: 28px;
+          border: none;
           background: transparent;
-          color: var(--text-muted);
-          border-radius: var(--radius-sm);
+          color: var(--text-secondary);
+          border-radius: var(--radius-md);
           cursor: pointer;
-          font-size: 0.72rem;
-          font-weight: 500;
-          letter-spacing: 0.05em;
-          transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+          transition: background var(--transition-fast), color var(--transition-fast);
           flex-shrink: 0;
-          line-height: 1.4;
         }
         .lang-switcher:hover {
           background: var(--bg-secondary);
-          border-color: var(--text-muted);
           color: var(--text-primary);
         }
-        .lang-label {
+        .lang-icon {
           display: flex;
           align-items: center;
           justify-content: center;

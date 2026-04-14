@@ -8,7 +8,8 @@ import path from "path";
 import crypto from "crypto";
 
 const MAX_SIZE_MB = 50;
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/tiff"];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/tiff", "image/svg+xml"];
+const SVG_TYPE = "image/svg+xml";
 
 // Local fallback: saves to public/uploads/<folder>/ when Cloudinary isn't configured
 function isCloudinaryConfigured() {
@@ -65,10 +66,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Process with Sharp ────────────────────────────────
+  // ── SVG: save as-is (no sharp processing) ────────────
   const arrayBuffer = await file.arrayBuffer();
   const inputBuffer = Buffer.from(arrayBuffer);
 
+  if (file.type === SVG_TYPE) {
+    try {
+      const local = await saveLocally(inputBuffer, folder, "svg");
+      return NextResponse.json({
+        success: true,
+        url: local.url,
+        width: 0,
+        height: 0,
+        publicId: null,
+        bytes: local.bytes,
+        sizes: { thumbnail: local.url, medium: local.url, large: local.url, original: local.url },
+      });
+    } catch (err) {
+      console.error("[upload] SVG save error:", err);
+      return NextResponse.json({ error: "فشل حفظ الملف" }, { status: 500 });
+    }
+  }
+
+  // ── Process with Sharp ────────────────────────────────
   let processedBuffer: Buffer;
   let width: number | undefined;
   let height: number | undefined;

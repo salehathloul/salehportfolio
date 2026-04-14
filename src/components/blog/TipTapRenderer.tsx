@@ -171,7 +171,8 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
       );
     case "paragraph": {
       const children = node.content?.map((c, i) => renderNode(c, i));
-      return <p key={index} className="ttr-p">{children?.length ? children : <br />}</p>;
+      const align = node.attrs?.textAlign as string | undefined;
+      return <p key={index} className="ttr-p" style={align ? { textAlign: align as React.CSSProperties["textAlign"] } : undefined}>{children?.length ? children : <br />}</p>;
     }
     case "text":
       return <span key={index}>{applyMarks(node.text ?? "", node.marks)}</span>;
@@ -180,10 +181,12 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
     case "heading": {
       const lvl = (node.attrs?.level as number) ?? 2;
       const children = node.content?.map((c, i) => renderNode(c, i));
-      if (lvl === 1) return <h1 key={index} className="ttr-h ttr-h1">{children}</h1>;
-      if (lvl === 3) return <h3 key={index} className="ttr-h ttr-h3">{children}</h3>;
-      if (lvl === 4) return <h4 key={index} className="ttr-h ttr-h4">{children}</h4>;
-      return <h2 key={index} className="ttr-h ttr-h2">{children}</h2>;
+      const align = node.attrs?.textAlign as string | undefined;
+      const style = align ? { textAlign: align as React.CSSProperties["textAlign"] } : undefined;
+      if (lvl === 1) return <h1 key={index} className="ttr-h ttr-h1" style={style}>{children}</h1>;
+      if (lvl === 3) return <h3 key={index} className="ttr-h ttr-h3" style={style}>{children}</h3>;
+      if (lvl === 4) return <h4 key={index} className="ttr-h ttr-h4" style={style}>{children}</h4>;
+      return <h2 key={index} className="ttr-h ttr-h2" style={style}>{children}</h2>;
     }
     case "bulletList":
       return <ul key={index} className="ttr-ul">{node.content?.map((c, i) => renderNode(c, i))}</ul>;

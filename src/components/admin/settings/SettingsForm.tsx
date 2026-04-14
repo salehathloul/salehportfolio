@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -73,6 +73,17 @@ const schema = z.object({
   navAcquireVisible: z.boolean().optional(),
   navAboutVisible: z.boolean().optional(),
   navContactVisible: z.boolean().optional(),
+  // Blog signature
+  blogSignatureAr: z.string().max(600).optional().nullable(),
+  blogSignatureEn: z.string().max(600).optional().nullable(),
+  blogSignaturePos: z.enum(["top", "bottom"]).optional(),
+  blogSignatureOn: z.boolean().optional(),
+  // Analytics & Marketing
+  analyticsGa4Id: z.string().max(30).optional().nullable(),
+  analyticsGtmId: z.string().max(20).optional().nullable(),
+  analyticsMetaPixelId: z.string().max(25).optional().nullable(),
+  analyticsTiktokPixelId: z.string().max(25).optional().nullable(),
+  analyticsSnapPixelId: z.string().max(25).optional().nullable(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -129,6 +140,15 @@ interface InitialSettings {
   navAboutVisible?: boolean | null;
   navContactVisible?: boolean | null;
   layoutMode?: string | null;
+  blogSignatureAr?: string | null;
+  blogSignatureEn?: string | null;
+  blogSignaturePos?: string | null;
+  blogSignatureOn?: boolean | null;
+  analyticsGa4Id?: string | null;
+  analyticsGtmId?: string | null;
+  analyticsMetaPixelId?: string | null;
+  analyticsTiktokPixelId?: string | null;
+  analyticsSnapPixelId?: string | null;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -200,6 +220,15 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
         navAboutVisible: initial.navAboutVisible ?? true,
         navContactVisible: initial.navContactVisible ?? true,
         layoutMode: (initial.layoutMode as "wide" | "centered") ?? "wide",
+        blogSignatureAr: initial.blogSignatureAr ?? "",
+        blogSignatureEn: initial.blogSignatureEn ?? "",
+        blogSignaturePos: (initial.blogSignaturePos as "top" | "bottom") ?? "bottom",
+        blogSignatureOn: initial.blogSignatureOn ?? true,
+        analyticsGa4Id: initial.analyticsGa4Id ?? "",
+        analyticsGtmId: initial.analyticsGtmId ?? "",
+        analyticsMetaPixelId: initial.analyticsMetaPixelId ?? "",
+        analyticsTiktokPixelId: initial.analyticsTiktokPixelId ?? "",
+        analyticsSnapPixelId: initial.analyticsSnapPixelId ?? "",
       },
     });
 
@@ -237,7 +266,10 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch(err) {
-      setSaveError(err instanceof Error ? err.message : "خطأ غير معروف");
+      const msg = err instanceof Error
+        ? err.message
+        : (typeof err === "string" ? err : JSON.stringify(err) ?? "خطأ في الحفظ");
+      setSaveError(msg);
       setSaveStatus("error");
       setTimeout(() => { setSaveStatus("idle"); setSaveError(null); }, 5000);
     }
@@ -891,6 +923,93 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
         </div>
       </Section>
 
+      {/* ═══════════════════════════════════════════════
+          ٨. توقيع التدوينات
+      ═══════════════════════════════════════════════ */}
+      <Section title="توقيع التدوينات" description="يُضاف تلقائياً لكل تدوينة — يمكنك إطفاؤه لتدوينة معينة من محرر المدونة">
+        <div className="fields-stack">
+          {/* Global toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.25rem" }}>
+            <label className="toggle-switch" style={{ transform: "scale(0.85)" }}>
+              <input type="checkbox" {...register("blogSignatureOn")} className="toggle-input" />
+              <span className="toggle-track"><span className="toggle-thumb" /></span>
+            </label>
+            <span className="field-label" style={{ fontSize: "0.875rem" }}>
+              {watch("blogSignatureOn") ? "التوقيع مفعّل على كل التدوينات" : "التوقيع مطفأ"}
+            </span>
+          </div>
+
+          {/* Position */}
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
+            <span className="field-label" style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>مكان التوقيع:</span>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer", fontSize: "0.875rem" }}>
+              <input type="radio" value="top" {...register("blogSignaturePos")} />
+              أعلى التدوينة
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer", fontSize: "0.875rem" }}>
+              <input type="radio" value="bottom" {...register("blogSignaturePos")} />
+              أسفل التدوينة
+            </label>
+          </div>
+
+          {/* Signature text */}
+          <div className="fields-grid-2">
+            <div>
+              <label className="field-label">نص التوقيع — عربي</label>
+              <textarea
+                {...register("blogSignatureAr")}
+                rows={3}
+                placeholder="مثال: صالح الهذلول — مصور فوتوغرافي"
+                dir="rtl"
+                className="text-input text-area"
+              />
+            </div>
+            <div>
+              <label className="field-label">نص التوقيع — English</label>
+              <textarea
+                {...register("blogSignatureEn")}
+                rows={3}
+                placeholder="e.g. Saleh Alhuthloul — Photographer"
+                dir="ltr"
+                className="text-input text-area"
+              />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ─── Per-page SEO ─── */}
+      <PerPageSeoSection register={register} />
+
+      {/* ─── Analytics & Marketing ─── */}
+      <Section title="التتبع والتسويق">
+        <div className="fields-grid">
+          <div className="field-group">
+            <label className="field-label">Google Analytics 4 <span className="field-hint">G-XXXXXXXXXX</span></label>
+            <input {...register("analyticsGa4Id")} placeholder="G-XXXXXXXXXX" className="text-input" dir="ltr" />
+          </div>
+          <div className="field-group">
+            <label className="field-label">Google Tag Manager <span className="field-hint">GTM-XXXXXXX</span></label>
+            <input {...register("analyticsGtmId")} placeholder="GTM-XXXXXXX" className="text-input" dir="ltr" />
+          </div>
+          <div className="field-group">
+            <label className="field-label">Meta (Facebook) Pixel ID</label>
+            <input {...register("analyticsMetaPixelId")} placeholder="1234567890123456" className="text-input" dir="ltr" />
+          </div>
+          <div className="field-group">
+            <label className="field-label">TikTok Pixel ID</label>
+            <input {...register("analyticsTiktokPixelId")} placeholder="XXXXXXXXXXXXXXXXXX" className="text-input" dir="ltr" />
+          </div>
+          <div className="field-group">
+            <label className="field-label">Snap Pixel ID</label>
+            <input {...register("analyticsSnapPixelId")} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="text-input" dir="ltr" />
+          </div>
+        </div>
+        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
+          أدخل المعرّفات فقط — السكريبت يُحقن تلقائياً في كل صفحات الموقع.
+        </p>
+      </Section>
+
       {/* Bottom save */}
       <div className="settings-footer">
         <div>
@@ -901,6 +1020,137 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
 
       <FormStyles />
     </form>
+  );
+}
+
+// ─── Per-Page SEO Section ─────────────────────────────────
+
+const SEO_PAGES = [
+  { key: "portfolio", labelAr: "المعرض",     labelEn: "Portfolio" },
+  { key: "blog",      labelAr: "المدونة",     labelEn: "Blog" },
+  { key: "acquire",   labelAr: "الاقتناء",   labelEn: "Acquire" },
+  { key: "about",     labelAr: "عني",         labelEn: "About" },
+  { key: "contact",   labelAr: "تواصل",      labelEn: "Contact" },
+  { key: "exhibitions",labelAr: "المعارض",   labelEn: "Exhibitions" },
+] as const;
+
+type SeoPageKey = (typeof SEO_PAGES)[number]["key"];
+
+interface PageSeoData {
+  titleAr?: string;
+  titleEn?: string;
+  descAr?: string;
+  descEn?: string;
+}
+
+function PerPageSeoSection({ register: _r }: { register: ReturnType<typeof import("react-hook-form").useForm>["register"] }) {
+  const [data, setData] = useState<Record<SeoPageKey, PageSeoData>>(() => {
+    const defaults: Record<string, PageSeoData> = {};
+    SEO_PAGES.forEach((p) => { defaults[p.key] = {}; });
+    return defaults as Record<SeoPageKey, PageSeoData>;
+  });
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/settings").then((r) => r.json()).then((s) => {
+      if (s?.pageSeoJson) {
+        try {
+          const parsed = JSON.parse(s.pageSeoJson);
+          setData((prev) => ({ ...prev, ...parsed }));
+        } catch { /* ignore */ }
+      }
+      setLoaded(true);
+    });
+  }, []);
+
+  function update(pageKey: SeoPageKey, field: keyof PageSeoData, value: string) {
+    setData((prev) => ({ ...prev, [pageKey]: { ...prev[pageKey], [field]: value } }));
+  }
+
+  async function saveSeo() {
+    setSaving(true);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageSeoJson: JSON.stringify(data) }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } finally { setSaving(false); }
+  }
+
+  if (!loaded) return null;
+
+  return (
+    <Section title="SEO — كل صفحة على حدة">
+      <div className="pageseo-grid">
+        {SEO_PAGES.map((page) => (
+          <div key={page.key} className="pageseo-card">
+            <div className="pageseo-card-header">
+              <span className="pageseo-page-label">{page.labelAr}</span>
+              <span className="pageseo-page-label-en">{page.labelEn}</span>
+            </div>
+            <div className="pageseo-fields">
+              <input
+                value={data[page.key]?.titleAr ?? ""}
+                onChange={(e) => update(page.key, "titleAr", e.target.value)}
+                placeholder="العنوان — عربي"
+                className="text-input text-input--sm"
+                dir="rtl"
+              />
+              <input
+                value={data[page.key]?.titleEn ?? ""}
+                onChange={(e) => update(page.key, "titleEn", e.target.value)}
+                placeholder="Title — English"
+                className="text-input text-input--sm"
+                dir="ltr"
+              />
+              <input
+                value={data[page.key]?.descAr ?? ""}
+                onChange={(e) => update(page.key, "descAr", e.target.value)}
+                placeholder="الوصف — عربي (160 حرف)"
+                className="text-input text-input--sm"
+                dir="rtl"
+                maxLength={160}
+              />
+              <input
+                value={data[page.key]?.descEn ?? ""}
+                onChange={(e) => update(page.key, "descEn", e.target.value)}
+                placeholder="Description — English (160 chars)"
+                className="text-input text-input--sm"
+                dir="ltr"
+                maxLength={160}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: "1rem" }}>
+        <button
+          type="button"
+          onClick={saveSeo}
+          disabled={saving}
+          className="pageseo-save-btn"
+        >
+          {saving ? "جاري الحفظ..." : saved ? "✓ تم الحفظ" : "حفظ SEO الصفحات"}
+        </button>
+      </div>
+      <style>{`
+        .pageseo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+        .pageseo-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; }
+        .pageseo-card-header { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .pageseo-page-label { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
+        .pageseo-page-label-en { font-size: 0.75rem; color: var(--text-muted); }
+        .pageseo-fields { display: flex; flex-direction: column; gap: 0.5rem; }
+        .text-input--sm { font-size: 0.8125rem !important; padding: 0.4rem 0.75rem !important; height: auto !important; }
+        .pageseo-save-btn { height: 36px; padding: 0 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 0.875rem; cursor: pointer; transition: all 150ms; }
+        .pageseo-save-btn:hover:not(:disabled) { border-color: var(--text-secondary); color: var(--text-primary); }
+        .pageseo-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      `}</style>
+    </Section>
   );
 }
 

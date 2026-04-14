@@ -6,6 +6,15 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import TipTapRenderer from "@/components/blog/TipTapRenderer";
+import CommentsSection from "@/components/blog/CommentsSection";
+
+async function getSettings() {
+  try {
+    return await db.siteSettings.findUnique({ where: { id: "main" } });
+  } catch {
+    return null;
+  }
+}
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://saleh-portfolio.vercel.app";
@@ -76,12 +85,19 @@ export default async function BlogPostPage({ params }: Props) {
   const locale = await getLocale();
   const t = await getTranslations("blog");
 
-  const post = await getPost(slug);
+  const [post, settings] = await Promise.all([getPost(slug), getSettings()]);
   if (!post) notFound();
 
   const title   = locale === "ar" ? post.titleAr : post.titleEn;
   const content = locale === "ar" ? post.contentAr : (post.contentEn ?? post.contentAr);
   const dir     = locale === "ar" ? "rtl" as const : "ltr" as const;
+
+  // Signature
+  const sigOn = (settings?.blogSignatureOn ?? true) && !post.signatureDisabled;
+  const sigText = locale === "ar"
+    ? (settings?.blogSignatureAr ?? null)
+    : (settings?.blogSignatureEn ?? null);
+  const sigPos = settings?.blogSignaturePos ?? "bottom";
 
   const formattedDate = post.publishedAt
     ? new Intl.DateTimeFormat(locale === "ar" ? "ar-u-ca-gregory-nu-latn" : "en-US", {
@@ -111,20 +127,6 @@ export default async function BlogPostPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* ── Cover ── */}
-      {post.coverImage && (
-        <div className="bpost-cover">
-          <Image
-            src={post.coverImage}
-            alt={title}
-            fill
-            priority
-            className="bpost-cover-img"
-            sizes="100vw"
-          />
-          <div className="bpost-cover-overlay" />
-        </div>
-      )}
 
       <article className="bpost-article">
         <div className="bpost-inner container">
@@ -150,8 +152,17 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Content */}
           <div className="bpost-content">
+            {sigOn && sigText && sigPos === "top" && (
+              <p className="bpost-signature" dir={dir}>{sigText}</p>
+            )}
             <TipTapRenderer content={content as object} dir={dir} />
+            {sigOn && sigText && sigPos === "bottom" && (
+              <p className="bpost-signature" dir={dir}>{sigText}</p>
+            )}
           </div>
+
+          {/* Comments */}
+          <CommentsSection postId={post.id} locale={locale as "ar" | "en"} />
 
           {/* Footer nav */}
           <div className="bpost-footer" dir={dir}>
@@ -231,6 +242,18 @@ export default async function BlogPostPage({ params }: Props) {
 
         /* Content */
         .bpost-content { padding-top: 2rem; }
+
+        /* Signature */
+        .bpost-signature {
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          font-style: italic;
+          margin-top: 2.5rem;
+          padding-top: 1.25rem;
+          border-top: 1px solid var(--border-subtle);
+          line-height: 1.6;
+          white-space: pre-line;
+        }
 
         /* Footer */
         .bpost-footer {

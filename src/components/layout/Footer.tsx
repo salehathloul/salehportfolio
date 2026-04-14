@@ -135,7 +135,8 @@ export default async function Footer({ settings }: FooterProps) {
       <style>{`
         .site-footer {
           border-top: 1px solid var(--border-subtle);
-          padding: 2rem 0;
+          padding-top: 1.5rem;
+          padding-bottom: 2rem;
           margin-top: auto;
         }
 

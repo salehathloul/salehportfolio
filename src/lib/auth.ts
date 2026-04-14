@@ -2,6 +2,7 @@ import type { NextAuthOptions, DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import type { MagicToken } from "@prisma/client";
 
 // Extend NextAuth session/JWT types
 declare module "next-auth" {
@@ -39,8 +40,26 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        magicToken: { label: "Magic Token", type: "text" },
       },
       async authorize(credentials) {
+        // ── Magic token login ────────────────────────────────────────────
+        if (credentials?.magicToken) {
+          const magic = await db.magicToken.findUnique({
+            where: { token: credentials.magicToken },
+          }) as MagicToken | null;
+
+          if (!magic || magic.type !== "admin" || !magic.usedAt || magic.expiresAt < new Date(Date.now() - 5 * 60 * 1000)) {
+            return null;
+          }
+
+          const user = await db.user.findUnique({ where: { email: magic.email } });
+          if (!user) return null;
+
+          return { id: user.id, email: user.email, name: user.name ?? undefined, role: user.role };
+        }
+
+        // ── Password login ───────────────────────────────────────────────
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await db.user.findUnique({
@@ -49,10 +68,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!user) return null;
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
         return {

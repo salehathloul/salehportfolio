@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
+import WorkGallery from "@/components/portfolio/WorkGallery";
+import ShareButtons from "@/components/blog/ShareButtons";
+import RelatedWorks from "@/components/portfolio/RelatedWorks";
 
 interface Props {
   params: Promise<{ locale: string; code: string }>;
@@ -61,13 +64,48 @@ export default async function WorkDetailPage({ params }: Props) {
       }).format(new Date(work.dateTaken))
     : null;
 
-  const hasMap = work.lat != null && work.lng != null;
-  // Google Maps link: prefer direct mapsUrl, fall back to lat/lng
-  const googleMapsUrl = (work as { mapsUrl?: string | null }).mapsUrl
-    ?? (hasMap ? `https://www.google.com/maps?q=${work.lat!},${work.lng!}` : null);
+  const mapsUrl = (work as { mapsUrl?: string | null }).mapsUrl ?? null;
+  const hasValidCoords = work.lat != null && work.lng != null && (work.lat !== 0 || work.lng !== 0);
+  const googleMapsUrl = mapsUrl
+    ?? (hasValidCoords ? `https://www.google.com/maps?q=${work.lat!},${work.lng!}` : null);
+
+  const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://salehalhathoul.com";
+  const pageUrl = `${BASE_URL}/${locale}/portfolio/${work.code}`;
+
+  // EXIF fields
+  const exif = [
+    { key: "camera",      labelAr: "الكاميرا",    labelEn: "Camera",       value: work.exifCamera },
+    { key: "lens",        labelAr: "العدسة",       labelEn: "Lens",         value: work.exifLens },
+    { key: "aperture",    labelAr: "الفتحة",       labelEn: "Aperture",     value: work.exifAperture },
+    { key: "shutter",     labelAr: "الغالق",       labelEn: "Shutter",      value: work.exifShutter },
+    { key: "iso",         labelAr: "الحساسية",     labelEn: "ISO",          value: work.exifIso },
+    { key: "focal",       labelAr: "البُعد البؤري", labelEn: "Focal Length", value: work.exifFocalLength },
+  ].filter((e) => e.value);
+
+  // JSON-LD
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "VisualArtwork",
+    name: title,
+    description: description ?? undefined,
+    image: work.imageUrl,
+    url: pageUrl,
+    creator: {
+      "@type": "Person",
+      name: "صالح الهذلول",
+      sameAs: `${BASE_URL}/${locale}/about`,
+    },
+    ...(work.dateTaken ? { dateCreated: new Date(work.dateTaken).toISOString().split("T")[0] } : {}),
+    ...(location ? { locationCreated: { "@type": "Place", name: location } } : {}),
+    ...(work.exifCamera ? { material: work.exifCamera } : {}),
+  };
 
   return (
     <>
+      {/* JSON-LD structured data */}
+      {/* eslint-disable-next-line react/no-danger */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
       <article className="wd-article">
         <div className="wd-inner container">
           {/* Back */}
@@ -78,11 +116,8 @@ export default async function WorkDetailPage({ params }: Props) {
             {t("title")}
           </Link>
 
-          {/* Hero image */}
-          <div
-            className="wd-hero"
-            style={{ aspectRatio: `${work.width} / ${work.height}` }}
-          >
+          {/* Hero image — full width */}
+          <div className="wd-hero" style={{ aspectRatio: `${work.width} / ${work.height}` }}>
             <Image
               src={work.imageUrl}
               alt={title ?? ""}
@@ -93,81 +128,84 @@ export default async function WorkDetailPage({ params }: Props) {
             />
           </div>
 
-          {/* Content */}
+          {/* Below image */}
           <div className="wd-content" dir={dir}>
-            {/* Header */}
-            <div className="wd-header">
-              <div className="wd-meta-row">
-                <span className="wd-code">{work.code}</span>
-                {category && <span className="wd-category">{category}</span>}
-                {formattedDate && <span className="wd-date">{formattedDate}</span>}
+
+            <div className="wd-split">
+
+              {/* col1 (right) — title + location */}
+              <div className="wd-col-title">
+                <h1 className="wd-title">{title}</h1>
+                {location && (
+                  <div className="wd-location">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                      <circle cx="12" cy="9" r="2.5"/>
+                    </svg>
+                    {googleMapsUrl ? (
+                      <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="wd-location-link">
+                        {location}
+                      </a>
+                    ) : (
+                      <span>{location}</span>
+                    )}
+                  </div>
+                )}
               </div>
-              <h1 className="wd-title">{title}</h1>
-              {location && (
-                <div className="wd-location">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-                    <circle cx="12" cy="9" r="2.5"/>
-                  </svg>
-                  {location}
-                  {googleMapsUrl && (
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="wd-maps-link">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
-                      </svg>
-                      {locale === "ar" ? "خرائط جوجل" : "Google Maps"}
-                    </a>
-                  )}
+
+              {/* col2 (left) — metadata above + description below */}
+              {description && (
+                <div className="wd-col-desc">
+                  <div className="wd-meta-row">
+                    <span className="wd-code">{work.code}</span>
+                    {category && <span className="wd-category">{category}</span>}
+                    {formattedDate && <span className="wd-date">{formattedDate}</span>}
+                  </div>
+                  <p>{description}</p>
                 </div>
               )}
+
             </div>
+          </div>
 
-            {/* Description */}
-            {description && (
-              <div className="wd-description">
-                <p>{description}</p>
-              </div>
-            )}
-
-            {/* Extra images gallery */}
-            {work.images.length > 0 && (
-              <div className="wd-gallery">
-                <h2 className="wd-gallery-title">{locale === "ar" ? "صور إضافية" : "Additional Photos"}</h2>
-                <div className="wd-gallery-grid">
-                  {work.images.map((img) => (
-                    <div key={img.id} className="wd-gallery-item">
-                      <Image
-                        src={img.url}
-                        alt={title ?? ""}
-                        fill
-                        className="wd-gallery-img"
-                        sizes="(max-width: 640px) 50vw, 400px"
-                      />
+          {/* EXIF data + Share row */}
+          <div className="wd-footer-row" dir={dir}>
+            {/* EXIF */}
+            {exif.length > 0 && (
+              <div className="wd-exif">
+                <span className="wd-section-title">{locale === "ar" ? "بيانات التصوير" : "Camera Data"}</span>
+                <div className="wd-exif-grid">
+                  {exif.map((e) => (
+                    <div key={e.key} className="wd-exif-item">
+                      <span className="wd-exif-label">{locale === "ar" ? e.labelAr : e.labelEn}</span>
+                      <span className="wd-exif-value" dir="ltr">{e.value}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Map */}
-            {hasMap && (
-              <div className="wd-map-section">
-                <h2 className="wd-section-title">
-                  {locale === "ar" ? "موقع التصوير" : "Shooting Location"}
-                </h2>
-                <div className="wd-map-wrap">
-                  <iframe
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${(work.lng! - 0.05).toFixed(6)},${(work.lat! - 0.05).toFixed(6)},${(work.lng! + 0.05).toFixed(6)},${(work.lat! + 0.05).toFixed(6)}&layer=mapnik&marker=${work.lat!.toFixed(6)},${work.lng!.toFixed(6)}`}
-                    title={locale === "ar" ? "موقع التصوير" : "Location map"}
-                    loading="lazy"
-                    className="wd-map-iframe"
-                  />
-                </div>
-              </div>
-            )}
+            {/* Share */}
+            <div className="wd-share">
+              <span className="wd-section-title">{locale === "ar" ? "مشاركة" : "Share"}</span>
+              <ShareButtons url={pageUrl} title={title ?? ""} locale={locale as "ar" | "en"} />
+            </div>
           </div>
+
+          {/* Extra images gallery — interactive with lightbox */}
+          <WorkGallery
+            images={work.images}
+            title={title ?? ""}
+            headingLabel={locale === "ar" ? "صور إضافية" : "Additional Photos"}
+            dir={dir as "rtl" | "ltr"}
+          />
+
+          {/* Related works */}
+          <RelatedWorks
+            currentCode={work.code}
+            categoryId={work.categoryId}
+            locale={locale}
+          />
         </div>
       </article>
 
@@ -192,20 +230,68 @@ export default async function WorkDetailPage({ params }: Props) {
         }
         .wd-back:hover { color: var(--text-primary); }
 
+        /* Hero image */
         .wd-hero {
           position: relative;
           width: 100%;
           max-height: 80svh;
           border-radius: var(--radius-md);
           overflow: hidden;
-          background: var(--bg-secondary);
+          background: var(--bg-primary);
         }
-
         .wd-hero-img { object-fit: contain; }
 
-        .wd-content { margin-top: 2.5rem; }
+        /* Below-image content area */
+        .wd-content { margin-top: 1.75rem; }
 
-        .wd-header { margin-bottom: 2rem; }
+        /* Title + Description split */
+        .wd-split {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 0;
+          align-items: start;
+          margin-top: 0.5rem;
+          padding-top: 1.25rem;
+          border-top: 1px solid var(--border-subtle);
+        }
+
+        /* col1 (right in RTL) — title + location: only as wide as content */
+        .wd-col-title {
+          padding-inline-end: 2.5rem;
+        }
+
+        /* col2 (left in RTL) — meta + description, touching title */
+        .wd-col-desc {
+          border-inline-start: none;
+        }
+        .wd-col-desc .wd-meta-row {
+          margin-bottom: 0.6rem;
+        }
+        .wd-col-desc p {
+          font-size: 0.92rem;
+          line-height: 1.9;
+          color: var(--text-secondary);
+          margin: 0;
+        }
+        .wd-col-desc p {
+          font-size: 0.92rem;
+          line-height: 1.9;
+          color: var(--text-secondary);
+        }
+
+        @media (max-width: 767px) {
+          .wd-split {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+          }
+          .wd-col-title { padding-inline-end: 0; }
+          .wd-col-desc {
+            border-inline-start: none;
+            border-top: 1px solid var(--border-subtle);
+            padding-inline-start: 0;
+            padding-top: 1.5rem;
+          }
+        }
 
         .wd-meta-row {
           display: flex;
@@ -254,82 +340,71 @@ export default async function WorkDetailPage({ params }: Props) {
           color: var(--text-muted);
         }
 
-        .wd-maps-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.2rem;
-          font-size: 0.72rem;
-          color: var(--text-subtle);
+        .wd-location-link {
+          color: inherit;
           text-decoration: none;
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          padding: 0.1rem 0.5rem;
+          border-bottom: 1px solid var(--border);
           transition: color var(--transition-fast), border-color var(--transition-fast);
-          white-space: nowrap;
         }
-        .wd-maps-link:hover {
+        .wd-location-link:hover {
           color: var(--text-primary);
           border-color: var(--text-muted);
         }
 
-        .wd-description {
-          max-width: 680px;
-          color: var(--text-secondary);
-          line-height: 1.8;
-          font-size: 1rem;
-          margin-bottom: 3rem;
-          border-top: 1px solid var(--border-subtle);
-          padding-top: 2rem;
-        }
-
-        .wd-section-title, .wd-gallery-title {
+        .wd-section-title {
+          display: block;
           font-family: var(--font-heading);
           font-weight: 400;
           color: var(--text-muted);
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
           text-transform: uppercase;
           letter-spacing: 0.06em;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
         }
 
-        .wd-gallery { margin-bottom: 3rem; }
-
-        .wd-gallery-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-          gap: 0.75rem;
+        /* EXIF + Share footer row */
+        .wd-footer-row {
+          display: flex;
+          gap: 3rem;
+          align-items: flex-start;
+          padding-top: 1.75rem;
+          margin-top: 1.75rem;
+          border-top: 1px solid var(--border-subtle);
+          margin-bottom: 2.5rem;
+          flex-wrap: wrap;
         }
 
-        .wd-gallery-item {
-          position: relative;
-          aspect-ratio: 4/3;
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          background: var(--bg-secondary);
+        .wd-exif { flex: 1; min-width: 0; }
+
+        .wd-exif-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem 1.5rem;
         }
 
-        .wd-gallery-img { object-fit: cover; transition: transform 500ms ease; }
-        .wd-gallery-item:hover .wd-gallery-img { transform: scale(1.04); }
-
-        .wd-map-section { margin-bottom: 3rem; }
-
-        .wd-map-wrap {
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          height: 380px;
-          border: 1px solid var(--border);
+        .wd-exif-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
         }
 
-        .wd-map-iframe {
-          width: 100%;
-          height: 100%;
-          border: none;
-          display: block;
+        .wd-exif-label {
+          font-size: 0.68rem;
+          color: var(--text-subtle);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
         }
+
+        .wd-exif-value {
+          font-size: 0.82rem;
+          color: var(--text-secondary);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .wd-share { flex-shrink: 0; }
 
         @media (max-width: 640px) {
-          .wd-gallery-grid { grid-template-columns: repeat(2, 1fr); }
-          .wd-map-wrap { height: 260px; }
+          .wd-footer-row { gap: 1.5rem; }
         }
       `}</style>
     </>

@@ -8,6 +8,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { useVisitor } from "@/components/auth/VisitorContext";
+import LoginModal from "@/components/auth/LoginModal";
 
 interface SiteSettings {
   logoLight?: string | null;
@@ -46,6 +48,9 @@ export default function Header({ settings }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { visitor, logout } = useVisitor();
 
   // Track dark mode for logo switch
   useEffect(() => {
@@ -137,6 +142,47 @@ export default function Header({ settings }: HeaderProps) {
           <div className="header-controls">
             <LanguageSwitcher />
             <ThemeToggle />
+
+            {/* Visitor login / avatar */}
+            {visitor ? (
+              <div className="visitor-menu-wrap">
+                <button
+                  className="visitor-avatar"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  title={visitor.name}
+                >
+                  {visitor.name.charAt(0).toUpperCase()}
+                </button>
+                {showUserMenu && (
+                  <>
+                    <div className="visitor-dropdown">
+                      <p className="visitor-dropdown-name">{visitor.name}</p>
+                      <p className="visitor-dropdown-email">{visitor.email}</p>
+                      <button
+                        className="visitor-dropdown-logout"
+                        onClick={async () => { await logout(); setShowUserMenu(false); }}
+                      >
+                        {locale === "ar" ? "تسجيل الخروج" : "Sign out"}
+                      </button>
+                    </div>
+                    <div className="visitor-dropdown-overlay" onClick={() => setShowUserMenu(false)} />
+                  </>
+                )}
+              </div>
+            ) : (
+              <button
+                className="visitor-login-btn"
+                onClick={() => setShowLogin(true)}
+                title={locale === "ar" ? "دخول" : "Sign in"}
+                aria-label={locale === "ar" ? "دخول" : "Sign in"}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+              </button>
+            )}
+
             {/* Mobile hamburger */}
             <button
               className="hamburger"
@@ -189,6 +235,15 @@ export default function Header({ settings }: HeaderProps) {
           className="mobile-overlay"
           onClick={() => setMenuOpen(false)}
           aria-hidden="true"
+        />
+      )}
+
+      {/* Login modal */}
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          locale={locale}
+          source="nav"
         />
       )}
 
@@ -275,7 +330,7 @@ export default function Header({ settings }: HeaderProps) {
         .header-controls {
           display: flex;
           align-items: center;
-          gap: 0.375rem;
+          gap: 0;
           flex-shrink: 0;
         }
 
@@ -370,6 +425,82 @@ export default function Header({ settings }: HeaderProps) {
           .hamburger {
             display: flex;
           }
+        }
+
+        /* ── Visitor login button ── */
+        .visitor-login-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: var(--radius-md);
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: background var(--transition-fast), color var(--transition-fast);
+          flex-shrink: 0;
+        }
+        .visitor-login-btn:hover {
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+        }
+
+        /* ── Visitor avatar + dropdown ── */
+        .visitor-menu-wrap { position: relative; }
+
+        .visitor-avatar {
+          width: 32px; height: 32px;
+          border-radius: 50%;
+          background: var(--text-primary);
+          color: var(--bg-primary);
+          border: none; cursor: pointer;
+          font-size: 0.875rem; font-weight: 600;
+          display: flex; align-items: center; justify-content: center;
+          transition: opacity var(--transition-fast);
+        }
+        .visitor-avatar:hover { opacity: 0.85; }
+
+        .visitor-dropdown-overlay {
+          position: fixed; inset: 0; z-index: 49;
+        }
+
+        .visitor-dropdown {
+          position: absolute;
+          top: calc(100% + 0.5rem);
+          inset-inline-end: 0;
+          z-index: 50;
+          min-width: 180px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 0.75rem;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .visitor-dropdown-name {
+          font-size: 0.875rem; font-weight: 500;
+          color: var(--text-primary); margin: 0 0 0.125rem;
+        }
+
+        .visitor-dropdown-email {
+          font-size: 0.75rem; color: var(--text-muted);
+          direction: ltr; margin: 0 0 0.75rem;
+          word-break: break-all;
+        }
+
+        .visitor-dropdown-logout {
+          width: 100%; height: 32px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          background: transparent;
+          color: var(--text-secondary);
+          font-size: 0.8125rem; cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+        .visitor-dropdown-logout:hover {
+          border-color: #e53e3e; color: #e53e3e;
         }
       `}</style>
     </>

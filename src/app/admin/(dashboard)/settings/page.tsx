@@ -77,6 +77,17 @@ export default async function SettingsPage() {
         navContactVisible: settings?.navContactVisible ?? true,
         // Layout
         layoutMode: settings?.layoutMode ?? "wide",
+        // Blog signature
+        blogSignatureAr: settings?.blogSignatureAr ?? null,
+        blogSignatureEn: settings?.blogSignatureEn ?? null,
+        blogSignaturePos: settings?.blogSignaturePos ?? "bottom",
+        blogSignatureOn: settings?.blogSignatureOn ?? true,
+        // Analytics
+        analyticsGa4Id: settings?.analyticsGa4Id ?? null,
+        analyticsGtmId: settings?.analyticsGtmId ?? null,
+        analyticsMetaPixelId: settings?.analyticsMetaPixelId ?? null,
+        analyticsTiktokPixelId: settings?.analyticsTiktokPixelId ?? null,
+        analyticsSnapPixelId: settings?.analyticsSnapPixelId ?? null,
       }}
     />
   );
