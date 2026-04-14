@@ -1,8 +1,11 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "noreply@salehalhuthloul.com";
 const ADMIN = process.env.ADMIN_EMAIL ?? "";
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 // ── Order: notify owner ───────────────────────────────────────────────────────
 
@@ -17,7 +20,7 @@ export async function sendNewOrderNotification(data: {
   message?: string;
 }) {
   if (!ADMIN) return;
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: ADMIN,
     subject: `طلب اقتناء جديد — ${data.workTitle} (${data.workCode})`,
@@ -46,7 +49,7 @@ export async function sendOrderConfirmation(data: {
   workTitle: string;
   size: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: data.customerEmail,
     subject: `تم استلام طلبك — ${data.workTitle}`,
@@ -75,7 +78,7 @@ export async function sendPriceQuote(data: {
   notes?: string;
 }) {
   const currency = data.currency ?? "SAR";
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: data.customerEmail,
     subject: `عرض سعر — ${data.workTitle}`,
@@ -113,7 +116,7 @@ export async function sendContactNotification(data: {
     media: "إعلام",
     other: "أخرى",
   };
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: ADMIN,
     subject: `رسالة جديدة — ${categoryLabels[data.category] ?? data.category}`,

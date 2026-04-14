@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { generateMagicToken } from "@/lib/visitor-session";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
 // ── POST /api/auth/magic — request magic link ─────────────────────────────────
@@ -57,6 +56,7 @@ export async function POST(req: NextRequest) {
   const verifyUrl = `${BASE_URL}/api/auth/magic/verify?${params.toString()}`;
 
   // Send email via Resend
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const subject = isAdmin ? "رابط دخول لوحة التحكم" : "رابط دخولك للموقع";
   const greeting = isAdmin ? (adminUser?.name ?? "مرحباً") : (name?.trim() ?? "مرحباً");
 
