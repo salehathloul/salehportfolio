@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
