@@ -20,6 +20,10 @@ interface Settings {
   layoutMode: string | null;
   logoLight: string | null;
   logoDark: string | null;
+  logoLightAr: string | null;
+  logoDarkAr: string | null;
+  logoLightEn: string | null;
+  logoDarkEn: string | null;
   titleAr: string | null;
   titleEn: string | null;
   descriptionAr: string | null;
@@ -76,6 +80,10 @@ async function getSettings(): Promise<Settings | null> {
         layoutMode: true,
         logoLight: true,
         logoDark: true,
+        logoLightAr: true,
+        logoDarkAr: true,
+        logoLightEn: true,
+        logoDarkEn: true,
         titleAr: true,
         titleEn: true,
         descriptionAr: true,
