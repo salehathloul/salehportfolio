@@ -4,6 +4,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/lib/i18n.ts");
 
 const nextConfig: NextConfig = {
+  outputFileTracingExcludes: {
+    "*": [
+      "./node_modules/@prisma/engines/**",
+      "./node_modules/prisma/libquery_engine-*",
+      "./node_modules/@prisma/client/libquery_engine-*",
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
