@@ -44,9 +44,12 @@ export async function uploadImage(
     publicId?: string;
     tags?: string[];
     isSvg?: boolean;
+    resource_type?: "image" | "raw" | "auto";
+    quality?: string;
+    fetch_format?: string;
   } = {}
 ): Promise<UploadResult> {
-  const { folder = "portfolio", publicId, tags = [], isSvg = false } = options;
+  const { folder = "portfolio", publicId, tags = [], isSvg = false, resource_type = "image" } = options;
 
   const result = await new Promise<UploadApiResponse>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -54,10 +57,10 @@ export async function uploadImage(
         folder,
         public_id: publicId,
         tags,
-        resource_type: "image",
-        ...(isSvg
-          ? {}
-          : { quality: "auto:best", fetch_format: "auto" }),
+        resource_type,
+        ...(resource_type === "image" && !isSvg
+          ? { quality: options.quality ?? "auto:best", fetch_format: options.fetch_format ?? "auto" }
+          : {}),
       },
       (error, result) => {
         if (error || !result) reject(error ?? new Error("Upload failed"));

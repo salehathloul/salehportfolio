@@ -53,7 +53,6 @@ const schema = z.object({
   titleEn: z.string().max(100).optional().nullable(),
   descriptionAr: z.string().max(300).optional().nullable(),
   descriptionEn: z.string().max(300).optional().nullable(),
-  seoImageUrl: z.string().optional().nullable(),
   // Nav labels
   navPortfolioAr: z.string().max(40).optional().nullable(),
   navPortfolioEn: z.string().max(40).optional().nullable(),
@@ -78,6 +77,12 @@ const schema = z.object({
   blogSignatureEn: z.string().max(600).optional().nullable(),
   blogSignaturePos: z.enum(["top", "bottom"]).optional(),
   blogSignatureOn: z.boolean().optional(),
+  blogSignatureImageUrl: z.string().optional().nullable(),
+  studioVideoUrl: z.string().optional().nullable(),
+  artistSignatureUrl: z.string().optional().nullable(),
+  impactStats: z.string().optional().nullable(),
+  // SEO image
+  seoImageUrl: z.string().optional().nullable(),
   // Analytics & Marketing
   analyticsGa4Id: z.string().max(30).optional().nullable(),
   analyticsGtmId: z.string().max(20).optional().nullable(),
@@ -144,14 +149,37 @@ interface InitialSettings {
   blogSignatureEn?: string | null;
   blogSignaturePos?: string | null;
   blogSignatureOn?: boolean | null;
+  blogSignatureImageUrl?: string | null;
+  studioVideoUrl?: string | null;
+  artistSignatureUrl?: string | null;
+  impactStats?: string | null;
+  seoImageUrl?: string | null;
   analyticsGa4Id?: string | null;
   analyticsGtmId?: string | null;
   analyticsMetaPixelId?: string | null;
   analyticsTiktokPixelId?: string | null;
   analyticsSnapPixelId?: string | null;
+  customLinks?: string | null;
+  contactLinks?: string | null;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+interface CustomLink {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  url: string;
+  openNew: boolean;
+}
+
+interface ContactLink {
+  id: string;
+  type: string;
+  url: string;
+  labelAr: string;
+  labelEn: string;
+}
 
 // ─── Component ────────────────────────────────────────────
 
@@ -165,6 +193,13 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
   const [cropUploading, setCropUploading] = useState(false);
+
+  const [customLinks, setCustomLinks] = useState<CustomLink[]>(() => {
+    try { return JSON.parse(initial.customLinks ?? "[]"); } catch { return []; }
+  });
+  const [contactLinks, setContactLinks] = useState<ContactLink[]>(() => {
+    try { return JSON.parse(initial.contactLinks ?? "[]"); } catch { return []; }
+  });
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } =
     useForm<FormValues>({
@@ -203,7 +238,6 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
         titleEn: initial.titleEn ?? "",
         descriptionAr: initial.descriptionAr ?? "",
         descriptionEn: initial.descriptionEn ?? "",
-        seoImageUrl: null,
         navPortfolioAr: initial.navPortfolioAr ?? "",
         navPortfolioEn: initial.navPortfolioEn ?? "",
         navBlogAr: initial.navBlogAr ?? "",
@@ -224,6 +258,11 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
         blogSignatureEn: initial.blogSignatureEn ?? "",
         blogSignaturePos: (initial.blogSignaturePos as "top" | "bottom") ?? "bottom",
         blogSignatureOn: initial.blogSignatureOn ?? true,
+        blogSignatureImageUrl: initial.blogSignatureImageUrl ?? null,
+        studioVideoUrl: initial.studioVideoUrl ?? null,
+        artistSignatureUrl: initial.artistSignatureUrl ?? null,
+        impactStats: initial.impactStats ?? null,
+        seoImageUrl: initial.seoImageUrl ?? null,
         analyticsGa4Id: initial.analyticsGa4Id ?? "",
         analyticsGtmId: initial.analyticsGtmId ?? "",
         analyticsMetaPixelId: initial.analyticsMetaPixelId ?? "",
@@ -246,6 +285,10 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
   const fontHeadingEnName = watch("fontHeadingEnName");
   const fontBodyEnUrl = watch("fontBodyEnUrl");
   const fontBodyEnName = watch("fontBodyEnName");
+  const seoImageUrl = watch("seoImageUrl");
+  const blogSignatureImageUrl = watch("blogSignatureImageUrl");
+  const studioVideoUrl = watch("studioVideoUrl");
+  const artistSignatureUrl = watch("artistSignatureUrl");
 
   // ── Submit ───────────────────────────────────────────────
 
@@ -256,7 +299,11 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          customLinks: JSON.stringify(customLinks),
+          contactLinks: JSON.stringify(contactLinks),
+        }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -586,6 +633,168 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
       </Section>
 
       {/* ═══════════════════════════════════════════════
+          روابط مخصصة
+      ═══════════════════════════════════════════════ */}
+      <Section title="روابط مخصصة" description="روابط خارجية تظهر في التنقل أو أي مكان تختاره — لكل رابط اسم بالعربية والإنجليزية">
+        <div className="fields-stack">
+          {customLinks.map((link, idx) => (
+            <div key={link.id} className="custom-link-row">
+              <div className="fields-grid-2">
+                <div className="field">
+                  <label className="field-label">الاسم عربي</label>
+                  <input
+                    value={link.labelAr}
+                    onChange={(e) => setCustomLinks((prev) => prev.map((l, i) => i === idx ? { ...l, labelAr: e.target.value } : l))}
+                    placeholder="مثال: موقعي الشخصي"
+                    dir="rtl"
+                    className="text-input"
+                  />
+                </div>
+                <div className="field">
+                  <label className="field-label">Name EN</label>
+                  <input
+                    value={link.labelEn}
+                    onChange={(e) => setCustomLinks((prev) => prev.map((l, i) => i === idx ? { ...l, labelEn: e.target.value } : l))}
+                    placeholder="e.g. My Website"
+                    dir="ltr"
+                    className="text-input"
+                  />
+                </div>
+              </div>
+              <div className="field" style={{ marginTop: "0.5rem" }}>
+                <label className="field-label">الرابط (URL)</label>
+                <input
+                  value={link.url}
+                  onChange={(e) => setCustomLinks((prev) => prev.map((l, i) => i === idx ? { ...l, url: e.target.value } : l))}
+                  placeholder="https://example.com"
+                  dir="ltr"
+                  className="text-input"
+                />
+              </div>
+              <div className="custom-link-footer">
+                <label className="custom-link-opennew-label">
+                  <input
+                    type="checkbox"
+                    checked={link.openNew}
+                    onChange={(e) => setCustomLinks((prev) => prev.map((l, i) => i === idx ? { ...l, openNew: e.target.checked } : l))}
+                    style={{ marginInlineEnd: "0.4rem" }}
+                  />
+                  فتح في تبويب جديد
+                </label>
+                <button
+                  type="button"
+                  className="custom-link-delete-btn"
+                  onClick={() => setCustomLinks((prev) => prev.filter((_, i) => i !== idx))}
+                >
+                  حذف
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="custom-link-add-btn"
+            onClick={() =>
+              setCustomLinks((prev) => [
+                ...prev,
+                { id: crypto.randomUUID(), labelAr: "", labelEn: "", url: "", openNew: false },
+              ])
+            }
+          >
+            + إضافة رابط
+          </button>
+        </div>
+      </Section>
+
+      {/* ═══════════════════════════════════════════════
+          روابط التواصل
+      ═══════════════════════════════════════════════ */}
+      <Section title="روابط التواصل" description="روابط التواصل السريع تظهر في صفحة التواصل — واتساب، إيميل، هاتف، Calendly، أو رابط مخصص">
+        <div className="fields-stack">
+          {contactLinks.map((link, idx) => (
+            <div key={link.id} className="custom-link-row">
+              <div className="fields-grid-2">
+                <div className="field">
+                  <label className="field-label">النوع</label>
+                  <select
+                    value={link.type}
+                    onChange={(e) => setContactLinks((prev) => prev.map((l, i) => i === idx ? { ...l, type: e.target.value } : l))}
+                    className="text-input"
+                    dir="rtl"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="calendly">Calendly</option>
+                    <option value="custom">مخصص</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label className="field-label">الرابط / العنوان</label>
+                  <input
+                    value={link.url}
+                    onChange={(e) => setContactLinks((prev) => prev.map((l, i) => i === idx ? { ...l, url: e.target.value } : l))}
+                    placeholder={
+                      link.type === "whatsapp" ? "https://wa.me/966XXXXXXXXX" :
+                      link.type === "email" ? "mailto:contact@example.com" :
+                      link.type === "phone" ? "tel:+966XXXXXXXXX" :
+                      "https://"
+                    }
+                    dir="ltr"
+                    className="text-input"
+                  />
+                </div>
+              </div>
+              <div className="fields-grid-2" style={{ marginTop: "0.5rem" }}>
+                <div className="field">
+                  <label className="field-label">التسمية عربي</label>
+                  <input
+                    value={link.labelAr}
+                    onChange={(e) => setContactLinks((prev) => prev.map((l, i) => i === idx ? { ...l, labelAr: e.target.value } : l))}
+                    placeholder="مثال: تواصل عبر واتساب"
+                    dir="rtl"
+                    className="text-input"
+                  />
+                </div>
+                <div className="field">
+                  <label className="field-label">Label EN</label>
+                  <input
+                    value={link.labelEn}
+                    onChange={(e) => setContactLinks((prev) => prev.map((l, i) => i === idx ? { ...l, labelEn: e.target.value } : l))}
+                    placeholder="e.g. Chat on WhatsApp"
+                    dir="ltr"
+                    className="text-input"
+                  />
+                </div>
+              </div>
+              <div className="custom-link-footer">
+                <span />
+                <button
+                  type="button"
+                  className="custom-link-delete-btn"
+                  onClick={() => setContactLinks((prev) => prev.filter((_, i) => i !== idx))}
+                >
+                  حذف
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="custom-link-add-btn"
+            onClick={() =>
+              setContactLinks((prev) => [
+                ...prev,
+                { id: crypto.randomUUID(), type: "whatsapp", url: "", labelAr: "", labelEn: "" },
+              ])
+            }
+          >
+            + إضافة رابط تواصل
+          </button>
+        </div>
+      </Section>
+
+      {/* ═══════════════════════════════════════════════
           ٤. الصفحة الرئيسية
       ═══════════════════════════════════════════════ */}
       <Section title="الصفحة الرئيسية" description="صورة الغلاف والعبارة الرئيسية">
@@ -730,21 +939,18 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
           </Field>
 
           {/* Quote weight selector */}
-          <Field label="وزن الخط (Bold)">
-            <div className="quote-size-row">
-              {(["normal", "medium", "semibold", "bold"] as const).map((w) => {
-                const labels: Record<string, string> = { normal: "عادي", medium: "متوسط", semibold: "شبه غامق", bold: "غامق" };
-                const weights: Record<string, number> = { normal: 400, medium: 500, semibold: 600, bold: 700 };
-                const isActive = watch("heroQuoteWeight") === w;
-                return (
-                  <button key={w} type="button"
-                    onClick={() => setValue("heroQuoteWeight", w, { shouldDirty: true })}
-                    className={`size-chip ${isActive ? "size-chip--active" : ""}`}
-                    style={{ fontWeight: weights[w] }}
-                  >{labels[w]}</button>
-                );
-              })}
-            </div>
+          <Field label="وزن الخط">
+            <select
+              value={watch("heroQuoteWeight") ?? "normal"}
+              onChange={(e) => setValue("heroQuoteWeight", e.target.value as "normal" | "medium" | "semibold" | "bold", { shouldDirty: true })}
+              className="text-input"
+              dir="rtl"
+            >
+              <option value="normal" style={{ fontWeight: 300 }}>عادي (Light 300)</option>
+              <option value="medium" style={{ fontWeight: 500 }}>متوسط (Medium 500)</option>
+              <option value="semibold" style={{ fontWeight: 600 }}>شبه غامق (Semi-Bold 600)</option>
+              <option value="bold" style={{ fontWeight: 700 }}>غامق (Bold 700)</option>
+            </select>
           </Field>
         </div>
       </Section>
@@ -873,8 +1079,15 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
           </div>
 
           <Field label="صورة المشاركة (OG Image)">
+            <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
+              المقاس المثالي: <strong>1200 × 630 بكسل</strong> — تظهر عند مشاركة الموقع على وسائل التواصل
+            </p>
             <ImageUploader
-              value={null}
+              value={
+                seoImageUrl
+                  ? { publicId: "", url: seoImageUrl, width: 1200, height: 630, sizes: { thumbnail: seoImageUrl, medium: seoImageUrl, large: seoImageUrl, original: seoImageUrl } }
+                  : null
+              }
               onChange={(img) =>
                 setValue("seoImageUrl", img?.url ?? null, { shouldDirty: true })
               }
@@ -985,6 +1198,73 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
               />
             </div>
           </div>
+
+          {/* Signature image */}
+          <Field label="صورة التوقيع (اختياري)">
+            <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
+              تظهر بجانب نص التوقيع في كل تدوينة — مثلاً صورتك الشخصية أو شعار
+            </p>
+            <ImageUploader
+              value={
+                blogSignatureImageUrl
+                  ? { publicId: "", url: blogSignatureImageUrl, width: 0, height: 0, sizes: { thumbnail: blogSignatureImageUrl, medium: blogSignatureImageUrl, large: blogSignatureImageUrl, original: blogSignatureImageUrl } }
+                  : null
+              }
+              onChange={(img) => setValue("blogSignatureImageUrl", img?.url ?? null, { shouldDirty: true })}
+              folder="signatures"
+              label="رفع صورة التوقيع"
+              aspectHint="مربع 1:1 — 200×200 px"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* ═══════════════════════════════════════════════
+          هوية الفنان — توقيع + فيديو
+      ═══════════════════════════════════════════════ */}
+      <Section title="هوية الفنان" description="توقيع الفنان المرئي وفيديو كواليس الاستوديو">
+        <div className="fields-stack">
+          <Field label="توقيع الفنان (صورة شفافة PNG)">
+            <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
+              يظهر في صفحة &quot;عني&quot; وعلى بعض أجزاء الموقع — ارفع PNG بخلفية شفافة
+            </p>
+            <ImageUploader
+              value={
+                artistSignatureUrl
+                  ? { publicId: "", url: artistSignatureUrl, width: 0, height: 0, sizes: { thumbnail: artistSignatureUrl, medium: artistSignatureUrl, large: artistSignatureUrl, original: artistSignatureUrl } }
+                  : null
+              }
+              onChange={(img) => setValue("artistSignatureUrl", img?.url ?? null, { shouldDirty: true })}
+              folder="signatures"
+              label="رفع توقيع الفنان"
+              aspectHint="شفاف PNG"
+            />
+          </Field>
+
+          <Field label="رابط فيديو الاستوديو (YouTube / Vimeo)">
+            <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
+              كواليس التصوير أو التعريف بالفنان — يظهر في صفحة &quot;عني&quot;
+            </p>
+            <input
+              {...register("studioVideoUrl")}
+              placeholder="https://www.youtube.com/embed/XXXXXXXXXXX"
+              dir="ltr"
+              className="text-input"
+            />
+            <span className="field-hint">استخدم رابط الـ embed (youtube.com/embed/... أو player.vimeo.com/video/...)</span>
+          </Field>
+        </div>
+      </Section>
+
+      {/* ═══════════════════════════════════════════════
+          إحصائيات الإنجاز
+      ═══════════════════════════════════════════════ */}
+      <Section title="إحصائيات الإنجاز" description="أرقام تظهر في الصفحة الرئيسية — إذا تركتها فارغة تُحسب تلقائياً من قاعدة البيانات">
+        <div className="fields-stack">
+          <ImpactStatsEditor
+            value={watch("impactStats") ?? null}
+            onChange={(v) => setValue("impactStats", v, { shouldDirty: true })}
+          />
         </div>
       </Section>
 
@@ -1170,18 +1450,51 @@ function Section({
   title,
   description,
   children,
+  defaultOpen = true,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="settings-section">
-      <div className="section-head">
-        <h2 className="section-title">{title}</h2>
-        {description && <p className="section-desc">{description}</p>}
-      </div>
-      <div className="section-body">{children}</div>
+    <section className={`settings-section ${open ? "settings-section--open" : ""}`}>
+      <button
+        type="button"
+        className="section-head section-head--btn"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <div>
+          <h2 className="section-title">{title}</h2>
+          {description && !open && (
+            <p className="section-desc section-desc--collapsed">{description}</p>
+          )}
+        </div>
+        <svg
+          className={`section-chevron ${open ? "section-chevron--open" : ""}`}
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        >
+          <path d="M4 6l4 4 4-4" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          {description && (
+            <div className="section-head section-head--desc">
+              <p className="section-desc">{description}</p>
+            </div>
+          )}
+          <div className="section-body">{children}</div>
+        </>
+      )}
     </section>
   );
 }
@@ -1249,6 +1562,55 @@ function SaveErrorMsg({ error }: { error: string | null }) {
   );
 }
 
+// ─── ImpactStatsEditor ────────────────────────────────────
+
+interface ImpactStatsValue {
+  works?: number;
+  exhibitions?: number;
+  years?: number;
+  countries?: number;
+}
+
+function ImpactStatsEditor({ value, onChange }: { value: string | null; onChange: (v: string) => void }) {
+  const [parsed, setParsed] = useState<ImpactStatsValue>(() => {
+    try { return value ? JSON.parse(value) : {}; } catch { return {}; }
+  });
+
+  function update(key: keyof ImpactStatsValue, val: string) {
+    const n = val === "" ? undefined : parseInt(val, 10);
+    const next = { ...parsed, [key]: n };
+    if (n === undefined) delete next[key];
+    setParsed(next);
+    onChange(JSON.stringify(next));
+  }
+
+  const fields: { key: keyof ImpactStatsValue; labelAr: string }[] = [
+    { key: "works", labelAr: "عدد الأعمال" },
+    { key: "exhibitions", labelAr: "المعارض والمنجزات" },
+    { key: "years", labelAr: "سنوات الخبرة" },
+    { key: "countries", labelAr: "دول" },
+  ];
+
+  return (
+    <div className="fields-grid-2">
+      {fields.map(({ key, labelAr }) => (
+        <div key={key} className="field">
+          <label className="field-label">{labelAr}</label>
+          <input
+            type="number"
+            min="0"
+            value={parsed[key] ?? ""}
+            onChange={(e) => update(key, e.target.value)}
+            placeholder="اتركه فارغاً للحساب التلقائي"
+            className="text-input"
+            dir="ltr"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────
 
 function FormStyles() {
@@ -1289,42 +1651,71 @@ function FormStyles() {
         margin-top: 0.2rem;
       }
 
-      /* Sections */
+      /* Sections — accordion */
       .settings-section {
-        display: grid;
-        grid-template-columns: 220px 1fr;
-        gap: 2rem;
-        padding: 2rem 0;
         border-bottom: 1px solid var(--border-subtle);
       }
 
-      @media (max-width: 768px) {
-        .settings-section {
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
+      .section-head--btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 0;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        text-align: right;
+        font-family: inherit;
       }
 
-      .section-head {
-        padding-top: 0.25rem;
+      .section-head--btn:hover .section-title {
+        opacity: 0.75;
+      }
+
+      .section-head--desc {
+        padding-bottom: 0.75rem;
+      }
+
+      .section-chevron {
+        color: var(--text-muted);
+        transition: transform var(--transition-fast);
+        flex-shrink: 0;
+      }
+
+      .section-chevron--open {
+        transform: rotate(180deg);
       }
 
       .section-title {
         font-size: 1rem;
         font-weight: 500;
         color: var(--text-primary);
+        transition: opacity var(--transition-fast);
       }
 
       .section-desc {
         font-size: 0.8125rem;
         color: var(--text-muted);
-        margin-top: 0.375rem;
+        margin-top: 0.25rem;
         line-height: 1.5;
+        text-align: right;
+      }
+
+      .section-desc--collapsed {
+        font-size: 0.75rem;
+        margin-top: 0.15rem;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        max-width: 400px;
       }
 
       .section-body {
         display: flex;
         flex-direction: column;
+        padding-bottom: 2rem;
       }
 
       /* Fields */
@@ -1863,6 +2254,65 @@ function FormStyles() {
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+
+      /* ── Custom Links & Contact Links ── */
+      .custom-link-row {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .custom-link-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.75rem;
+      }
+
+      .custom-link-opennew-label {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+      }
+
+      .custom-link-delete-btn {
+        padding: 0.3rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        cursor: pointer;
+        transition: border-color var(--transition-fast), color var(--transition-fast);
+      }
+
+      .custom-link-delete-btn:hover {
+        border-color: #e53e3e;
+        color: #e53e3e;
+      }
+
+      .custom-link-add-btn {
+        align-self: flex-start;
+        padding: 0.45rem 1rem;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: border-color var(--transition-fast), color var(--transition-fast);
+        font-family: inherit;
+      }
+
+      .custom-link-add-btn:hover {
+        border-color: var(--text-secondary);
+        color: var(--text-secondary);
       }
     `}</style>
   );

@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const FROM = "noreply@salehalhuthloul.com";
+const FROM = process.env.EMAIL_FROM ?? "noreply@salehalhuthloul.com";
 const ADMIN = process.env.ADMIN_EMAIL ?? "";
 
 function getResend() {
@@ -99,6 +99,57 @@ export async function sendPriceQuote(data: {
   });
 }
 
+// ── Commission: notify owner ─────────────────────────────────────────────────
+
+export async function sendCommissionNotification(data: {
+  name: string;
+  email: string;
+  phone?: string;
+  projectTypeAr: string;
+  projectTypeEn?: string;
+  descriptionAr: string;
+  budgetRange?: string;
+  timelineWeeks?: number;
+  referenceUrls?: string;
+}) {
+  const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? ADMIN;
+  if (!CONTACT_EMAIL) return;
+
+  const budgetLabel: Record<string, string> = {
+    "< 5000": "أقل من 5,000 ريال",
+    "5000-15000": "5,000 – 15,000 ريال",
+    "15000+": "أكثر من 15,000 ريال",
+    "undecided": "لم يحدد بعد",
+  };
+  const timelineLabel: Record<number, string> = {
+    2: "1–2 أسبوع",
+    4: "3–4 أسابيع",
+    8: "1–2 شهر",
+    12: "+شهرين",
+  };
+
+  return getResend().emails.send({
+    from: FROM,
+    to: CONTACT_EMAIL,
+    subject: `طلب عمل بالطلب — ${data.name}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+        <h2 style="border-bottom: 2px solid #111; padding-bottom: 0.5rem;">طلب عمل بالطلب جديد</h2>
+        <table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+          <tr><td style="padding: 0.5rem 0; color: #555; width: 140px;">الاسم</td><td>${data.name}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">البريد</td><td dir="ltr">${data.email}</td></tr>
+          ${data.phone ? `<tr><td style="padding: 0.5rem 0; color: #555;">الجوال</td><td dir="ltr">${data.phone}</td></tr>` : ""}
+          <tr><td style="padding: 0.5rem 0; color: #555;">نوع المشروع</td><td>${data.projectTypeAr}${data.projectTypeEn ? ` / ${data.projectTypeEn}` : ""}</td></tr>
+          ${data.budgetRange ? `<tr><td style="padding: 0.5rem 0; color: #555;">الميزانية</td><td>${budgetLabel[data.budgetRange] ?? data.budgetRange}</td></tr>` : ""}
+          ${data.timelineWeeks ? `<tr><td style="padding: 0.5rem 0; color: #555;">الجدول الزمني</td><td>${timelineLabel[data.timelineWeeks] ?? `${data.timelineWeeks} أسابيع`}</td></tr>` : ""}
+          <tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">الوصف</td><td style="white-space: pre-wrap;">${data.descriptionAr}</td></tr>
+          ${data.referenceUrls ? `<tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">الروابط</td><td style="white-space: pre-wrap; direction: ltr;">${data.referenceUrls}</td></tr>` : ""}
+        </table>
+      </div>
+    `,
+  });
+}
+
 // ── Contact: notify owner ────────────────────────────────────────────────────
 
 export async function sendContactNotification(data: {
@@ -107,6 +158,7 @@ export async function sendContactNotification(data: {
   phone?: string;
   category: string;
   message: string;
+  attachmentUrl?: string;
 }) {
   if (!ADMIN) return;
   const categoryLabels: Record<string, string> = {
@@ -129,6 +181,7 @@ export async function sendContactNotification(data: {
           <tr><td style="padding: 0.5rem 0; color: #555;">البريد</td><td dir="ltr">${data.email}</td></tr>
           ${data.phone ? `<tr><td style="padding: 0.5rem 0; color: #555;">الجوال</td><td dir="ltr">${data.phone}</td></tr>` : ""}
           <tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">الرسالة</td><td>${data.message}</td></tr>
+          ${data.attachmentUrl ? `<tr><td style="padding: 0.5rem 0; color: #555;">المرفق</td><td><a href="${data.attachmentUrl}" target="_blank" style="color: #111;">عرض المرفق</a></td></tr>` : ""}
         </table>
       </div>
     `,

@@ -1,13 +1,10 @@
 "use client";
 
-import {
-  useState,
-  useCallback,
-} from "react";
+import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,12 +114,11 @@ interface CardProps {
   locale: string;
   showInfo: boolean;
   index: number;
-  onOpen: (i: number) => void;
   style?: React.CSSProperties;
   className?: string;
 }
 
-function WorkCard({ work, locale, showInfo, index, onOpen, style, className = "" }: CardProps) {
+function WorkCard({ work, locale, showInfo, index, style, className = "" }: CardProps) {
   const [loaded, setLoaded] = useState(false);
   const title = locale === "ar" ? work.titleAr : work.titleEn;
   const location = locale === "ar" ? work.locationAr : work.locationEn;
@@ -136,36 +132,33 @@ function WorkCard({ work, locale, showInfo, index, onOpen, style, className = ""
       exit="exit"
       className={`wc ${showInfo ? "wc--info" : ""} ${className}`}
       style={style}
-      onClick={() => onOpen(index)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onOpen(index)}
-      aria-label={title}
       layout
     >
-      {/* Shimmer */}
-      <div className={`wc-shimmer ${loaded ? "wc-shimmer--done" : ""}`} />
+      <Link href={`/${locale}/portfolio/${work.code}`} className="wc-link" tabIndex={0} aria-label={title}>
+        {/* Shimmer */}
+        <div className={`wc-shimmer ${loaded ? "wc-shimmer--done" : ""}`} />
 
-      {/* Image */}
-      <div className="wc-img-wrap">
-        <Image
-          src={work.imageUrl}
-          alt={title}
-          fill
-          className={`wc-img ${loaded ? "wc-img--loaded" : ""}`}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          loading="lazy"
-          onLoad={() => setLoaded(true)}
-        />
-      </div>
+        {/* Image */}
+        <div className="wc-img-wrap">
+          <Image
+            src={work.imageUrl}
+            alt={title}
+            fill
+            className={`wc-img ${loaded ? "wc-img--loaded" : ""}`}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+          />
+        </div>
 
-      {/* Info overlay */}
-      <div className="wc-overlay" />
-      <div className="wc-info">
-        <span className="wc-code">{work.code}</span>
-        <span className="wc-title">{title}</span>
-        {location && <span className="wc-location">{location}</span>}
-      </div>
+        {/* Info overlay */}
+        <div className="wc-overlay" />
+        <div className="wc-info">
+          <span className="wc-code">{work.code}</span>
+          <span className="wc-title">{title}</span>
+          {location && <span className="wc-location">{location}</span>}
+        </div>
+      </Link>
     </motion.div>
   );
 }
@@ -180,30 +173,60 @@ export default function PortfolioClient({
 }: Props) {
   const locale = useLocale();
   const t = useTranslations("portfolio");
-  const router = useRouter();
 
   const [layout, setLayout] = useState<GridLayout>(defaultLayout);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [showInfo, setShowInfo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Filtered works
-  const filtered =
-    activeCategory === "all"
-      ? works
-      : works.filter((w) =>
-          w.categoryId === activeCategory ||
+  // Filtered works — category + search
+  const filtered = works
+    .filter((w) =>
+      activeCategory === "all"
+        ? true
+        : w.categoryId === activeCategory ||
           (w as { categories?: { id: string }[] }).categories?.some((c) => c.id === activeCategory)
-        );
-
-  const openAt = useCallback((index: number) => {
-    const work = filtered[index];
-    if (work) router.push(`/${locale}/portfolio/${work.code}`);
-  }, [filtered, locale, router]);
+    )
+    .filter((w) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        w.titleAr.toLowerCase().includes(q) ||
+        w.titleEn.toLowerCase().includes(q) ||
+        (w.locationAr ?? "").toLowerCase().includes(q) ||
+        (w.locationEn ?? "").toLowerCase().includes(q)
+      );
+    });
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <>
+      {/* ── Search ── */}
+      <div className="pt-search-wrap container">
+        <div className="pt-search">
+          <svg className="pt-search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <circle cx="6.5" cy="6.5" r="4.5" />
+            <path d="M10 10l3 3" />
+          </svg>
+          <input
+            type="search"
+            className="pt-search-input"
+            placeholder={locale === "ar" ? "ابحث عن عمل أو موقع…" : "Search works or locations…"}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            dir={locale === "ar" ? "rtl" : "ltr"}
+          />
+          {searchQuery && (
+            <button className="pt-search-clear" onClick={() => setSearchQuery("")} aria-label="Clear">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M2 2l8 8M10 2L2 10" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Toolbar ── */}
       <div className="pt-toolbar container">
         {/* Category filters */}
@@ -261,11 +284,11 @@ export default function PortfolioClient({
         {filtered.length === 0 ? (
           <p className="pt-empty">{t("noWorks")}</p>
         ) : layout === "grid" ? (
-          <GridLayout works={filtered} locale={locale} showInfo={showInfo} onOpen={openAt} />
+          <GridLayout works={filtered} locale={locale} showInfo={showInfo} />
         ) : layout === "masonry" ? (
-          <MasonryLayout works={filtered} locale={locale} showInfo={showInfo} onOpen={openAt} />
+          <MasonryLayout works={filtered} locale={locale} showInfo={showInfo} />
         ) : (
-          <ScatteredLayout works={filtered} locale={locale} showInfo={showInfo} onOpen={openAt} />
+          <ScatteredLayout works={filtered} locale={locale} showInfo={showInfo} />
         )}
       </div>
 
@@ -517,6 +540,68 @@ export default function PortfolioClient({
           position: relative;
         }
 
+        /* ── Search ── */
+        .pt-search-wrap {
+          padding-top: 2rem;
+          padding-bottom: 0;
+        }
+
+        .pt-search {
+          position: relative;
+          display: flex;
+          align-items: center;
+          max-width: 380px;
+        }
+
+        .pt-search-icon {
+          position: absolute;
+          inset-inline-start: 0.75rem;
+          color: var(--text-muted);
+          pointer-events: none;
+          flex-shrink: 0;
+        }
+
+        .pt-search-input {
+          width: 100%;
+          padding: 0.55rem 2.25rem;
+          font-size: 0.85rem;
+          background: transparent;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          color: var(--text-primary);
+          outline: none;
+          transition: border-color var(--transition-fast);
+        }
+
+        .pt-search-input::placeholder { color: var(--text-subtle); }
+        .pt-search-input:focus { border-color: var(--text-muted); }
+
+        .pt-search-clear {
+          position: absolute;
+          inset-inline-end: 0.65rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: var(--text-muted);
+          padding: 0;
+          transition: color var(--transition-fast);
+        }
+        .pt-search-clear:hover { color: var(--text-primary); }
+
+        /* ── Card link ── */
+        .wc-link {
+          display: block;
+          position: absolute;
+          inset: 0;
+          text-decoration: none;
+          color: inherit;
+        }
+
       `}</style>
     </>
   );
@@ -528,10 +613,9 @@ interface SubLayoutProps {
   works: Work[];
   locale: string;
   showInfo: boolean;
-  onOpen: (i: number) => void;
 }
 
-function GridLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
+function GridLayout({ works, locale, showInfo }: SubLayoutProps) {
   return (
     <div className="pt-grid">
       <AnimatePresence mode="popLayout">
@@ -542,7 +626,6 @@ function GridLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
             locale={locale}
             showInfo={showInfo}
             index={i}
-            onOpen={onOpen}
           />
         ))}
       </AnimatePresence>
@@ -550,7 +633,7 @@ function GridLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
   );
 }
 
-function MasonryLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
+function MasonryLayout({ works, locale, showInfo }: SubLayoutProps) {
   return (
     <div className="pt-masonry">
       <AnimatePresence>
@@ -563,7 +646,6 @@ function MasonryLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
                 locale={locale}
                 showInfo={showInfo}
                 index={i}
-                onOpen={onOpen}
                 style={{ "--aspect": `${pct}%` } as React.CSSProperties}
               />
             </div>
@@ -574,7 +656,7 @@ function MasonryLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
   );
 }
 
-function ScatteredLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
+function ScatteredLayout({ works, locale, showInfo }: SubLayoutProps) {
   return (
     <div className="pt-scattered">
       <AnimatePresence mode="popLayout">
@@ -587,7 +669,6 @@ function ScatteredLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
               locale={locale}
               showInfo={showInfo}
               index={i}
-              onOpen={onOpen}
               style={{
                 gridColumn: `span ${p.col}`,
                 gridRow: `span ${p.row}`,

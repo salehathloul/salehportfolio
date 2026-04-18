@@ -94,6 +94,17 @@ model SiteSettings {
   analyticsMetaPixelId     String?  // Meta (Facebook) Pixel ID
   analyticsTiktokPixelId   String?  // TikTok Pixel ID
   analyticsSnapPixelId     String?  // Snap Pixel ID
+  // Custom external links (JSON: [{id,labelAr,labelEn,url,openNew}])
+  customLinks              String?
+  // Contact page links (JSON: [{id,type,url,labelAr,labelEn}]) type: whatsapp|email|phone|calendly|custom
+  contactLinks             String?
+  // SEO/OG image (separate from hero image)
+  seoImageUrl              String?
+  // Blog signature image
+  blogSignatureImageUrl    String?
+  studioVideoUrl           String?  // YouTube or Vimeo embed URL for studio/behind-the-scenes video
+  artistSignatureUrl       String?  // Transparent PNG of handwritten signature
+  impactStats              String?  // JSON: {works,exhibitions,years,countries}
   updatedAt                DateTime @updatedAt
 }
 
@@ -136,6 +147,7 @@ model Work {
   exifShutter     String?   // سرعة الغالق: مثال "1/1000s"
   exifIso         String?   // الحساسية: مثال "ISO 400"
   exifFocalLength String?   // البُعد البؤري: مثال "50mm"
+  keywords      String?      // كلمات مفتاحية SEO مخفية (فاصلة بين كل كلمة)
   acquireItem   AcquireItem?
   images        WorkImage[]
   createdAt     DateTime     @default(now())
@@ -164,6 +176,15 @@ model BlogPost {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   comments          BlogComment[]
+  tags              BlogTag[]     @relation("PostTags")
+}
+
+model BlogTag {
+  id     String     @id @default(cuid())
+  nameAr String
+  nameEn String
+  slug   String     @unique
+  posts  BlogPost[] @relation("PostTags")
 }
 
 model BlogComment {
@@ -247,8 +268,9 @@ model ContactMessage {
   phone     String?
   category  String
   message   String
-  status    String   @default("new")
-  createdAt DateTime @default(now())
+  status        String   @default("new")
+  attachmentUrl String?  // رابط مرفق اختياري (Cloudinary)
+  createdAt     DateTime @default(now())
 }
 
 model FontAsset {
@@ -292,6 +314,31 @@ model AcquireWaitlist {
   createdAt DateTime    @default(now())
 }
 
+model Testimonial {
+  id          String   @id @default(cuid())
+  nameAr      String
+  nameEn      String?
+  roleAr      String?
+  roleEn      String?
+  textAr      String
+  textEn      String?
+  imageUrl    String?
+  isVisible   Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model CollectedBy {
+  id         String   @id @default(cuid())
+  nameAr     String
+  nameEn     String?
+  logoUrl    String?
+  websiteUrl String?
+  isVisible  Boolean  @default(true)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
 model Exhibition {
   id            String   @id @default(cuid())
   titleAr       String
@@ -306,4 +353,20 @@ model Exhibition {
   imageUrl      String?
   order         Int      @default(0)
   createdAt     DateTime @default(now())
+}
+
+model CommissionRequest {
+  id             String   @id @default(cuid())
+  name           String
+  email          String
+  phone          String?
+  projectTypeAr  String   // نوع المشروع
+  projectTypeEn  String?
+  descriptionAr  String
+  budgetRange    String?  // "< 5000", "5000-15000", "15000+"
+  timelineWeeks  Int?     // عدد الأسابيع المتوقعة
+  referenceUrls  String?  // روابط مرجعية (مفصولة بسطر جديد)
+  status         String   @default("new")  // new | reviewing | accepted | rejected
+  notes          String?
+  createdAt      DateTime @default(now())
 }

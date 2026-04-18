@@ -126,6 +126,9 @@ export default async function Footer({ settings }: FooterProps) {
         )}
 
         <div className="footer-right">
+          <Link href={`/${locale}/care-guide`} className="footer-care-link">
+            {locale === "ar" ? "دليل العناية" : "Care Guide"}
+          </Link>
           <Link href={`/${locale}/contact`} className="footer-contact-link">
             {t("contact")}
           </Link>
@@ -191,6 +194,20 @@ export default async function Footer({ settings }: FooterProps) {
 
         .footer-right {
           font-size: 0.875rem;
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+        }
+
+        .footer-care-link {
+          color: var(--text-subtle);
+          text-decoration: none;
+          font-size: 0.8rem;
+          transition: color var(--transition-fast);
+        }
+
+        .footer-care-link:hover {
+          color: var(--text-muted);
         }
 
         .footer-contact-link {

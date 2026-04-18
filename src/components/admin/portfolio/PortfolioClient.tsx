@@ -44,6 +44,7 @@ interface Work {
   lat?: number | null;
   lng?: number | null;
   mapsUrl?: string | null;
+  keywords?: string | null;
 }
 
 type GridLayout = "grid" | "masonry" | "scattered";
@@ -147,6 +148,7 @@ export default function PortfolioClient({
       lat: work.lat ?? null,
       lng: work.lng ?? null,
       mapsUrl: (work as { mapsUrl?: string | null }).mapsUrl ?? null,
+      keywords: (work as { keywords?: string | null }).keywords ?? null,
     });
     setModalError("");
     setModalOpen(true);

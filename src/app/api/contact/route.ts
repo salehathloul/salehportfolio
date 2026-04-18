@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, email, phone, category, message } = body;
+  const { name, email, phone, category, message, attachmentUrl } = body;
 
   if (!name || !email || !category || !message) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -41,10 +41,18 @@ export async function POST(req: NextRequest) {
   }
 
   const record = await db.contactMessage.create({
-    data: { name, email, phone: phone ?? null, category, message, status: "new" },
+    data: {
+      name,
+      email,
+      phone: phone ?? null,
+      category,
+      message,
+      status: "new",
+      attachmentUrl: attachmentUrl ?? null,
+    },
   });
 
-  sendContactNotification({ name, email, phone, category, message }).catch(console.error);
+  sendContactNotification({ name, email, phone, category, message, attachmentUrl }).catch(console.error);
 
   return NextResponse.json({ id: record.id }, { status: 201 });
 }

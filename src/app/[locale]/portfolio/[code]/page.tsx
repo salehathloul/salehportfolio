@@ -8,10 +8,12 @@ import { db } from "@/lib/db";
 import WorkGallery from "@/components/portfolio/WorkGallery";
 import ShareButtons from "@/components/blog/ShareButtons";
 import RelatedWorks from "@/components/portfolio/RelatedWorks";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 
 interface Props {
   params: Promise<{ locale: string; code: string }>;
 }
+
 
 async function getWork(code: string) {
   try {
@@ -27,15 +29,37 @@ async function getWork(code: string) {
   }
 }
 
+async function getAdjacentWorks(order: number) {
+  try {
+    const [prev, next] = await Promise.all([
+      db.work.findFirst({
+        where: { isPublished: true, order: { lt: order } },
+        orderBy: { order: "desc" },
+        select: { code: true, titleAr: true, titleEn: true, imageUrl: true },
+      }),
+      db.work.findFirst({
+        where: { isPublished: true, order: { gt: order } },
+        orderBy: { order: "asc" },
+        select: { code: true, titleAr: true, titleEn: true, imageUrl: true },
+      }),
+    ]);
+    return { prev, next };
+  } catch {
+    return { prev: null, next: null };
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, code } = await params;
   const work = await getWork(code);
   if (!work) return {};
   const title = locale === "ar" ? work.titleAr : work.titleEn;
   const desc = locale === "ar" ? work.descriptionAr : work.descriptionEn;
+  const kw = (work as { keywords?: string | null }).keywords;
   return {
     title,
     description: desc ?? undefined,
+    keywords: kw ?? undefined,
     openGraph: {
       title: title ?? undefined,
       images: work.imageUrl ? [{ url: work.imageUrl }] : [],
@@ -50,6 +74,8 @@ export default async function WorkDetailPage({ params }: Props) {
 
   const work = await getWork(code);
   if (!work) notFound();
+
+  const { prev: prevWork, next: nextWork } = await getAdjacentWorks(work.order);
 
   const title = locale === "ar" ? work.titleAr : work.titleEn;
   const location = locale === "ar" ? work.locationAr : work.locationEn;
@@ -106,6 +132,21 @@ export default async function WorkDetailPage({ params }: Props) {
       {/* JSON-LD structured data */}
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* eslint-disable-next-line react/no-danger */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": locale === "ar" ? "الرئيسية" : "Home", "item": `${BASE_URL}/${locale}` },
+              { "@type": "ListItem", "position": 2, "name": locale === "ar" ? "المعرض" : "Portfolio", "item": `${BASE_URL}/${locale}/portfolio` },
+              { "@type": "ListItem", "position": 3, "name": title ?? work.code, "item": `${BASE_URL}/${locale}/portfolio/${work.code}` },
+            ]
+          })
+        }}
+      />
 
       <article className="wd-article">
         <div className="wd-inner container">
@@ -116,6 +157,13 @@ export default async function WorkDetailPage({ params }: Props) {
             </svg>
             {t("title")}
           </Link>
+          <Breadcrumb
+            items={[
+              { label: locale === "ar" ? "الرئيسية" : "Home", href: `/${locale}` },
+              { label: locale === "ar" ? "المعرض" : "Portfolio", href: `/${locale}/portfolio` },
+              { label: title ?? work.code },
+            ]}
+          />
 
           {/* Hero image — full width */}
           <div className="wd-hero" style={{ aspectRatio: `${work.width} / ${work.height}` }}>
@@ -131,10 +179,9 @@ export default async function WorkDetailPage({ params }: Props) {
 
           {/* Below image */}
           <div className="wd-content" dir={dir}>
-
             <div className="wd-split">
 
-              {/* col1 (right) — title + location */}
+              {/* col1 — title + location */}
               <div className="wd-col-title">
                 <h1 className="wd-title">{title}</h1>
                 {location && (
@@ -154,8 +201,8 @@ export default async function WorkDetailPage({ params }: Props) {
                 )}
               </div>
 
-              {/* col2 (left) — metadata above + description below */}
-              {description && (
+              {/* col2 — metadata + description */}
+              {description ? (
                 <div className="wd-col-desc">
                   <div className="wd-meta-row">
                     <span className="wd-code">{work.code}</span>
@@ -163,6 +210,14 @@ export default async function WorkDetailPage({ params }: Props) {
                     {formattedDate && <span className="wd-date">{formattedDate}</span>}
                   </div>
                   <p>{description}</p>
+                </div>
+              ) : (
+                <div className="wd-col-desc wd-col-desc--no-text">
+                  <div className="wd-meta-row">
+                    <span className="wd-code">{work.code}</span>
+                    {category && <span className="wd-category">{category}</span>}
+                    {formattedDate && <span className="wd-date">{formattedDate}</span>}
+                  </div>
                 </div>
               )}
 
@@ -207,8 +262,47 @@ export default async function WorkDetailPage({ params }: Props) {
             categoryId={work.categoryId}
             locale={locale}
           />
+
         </div>
       </article>
+
+      {/* ── Prev / Next fixed arrows ── */}
+      {prevWork && (
+        <Link
+          href={`/${locale}/portfolio/${prevWork.code}`}
+          className="wd-nav wd-nav--prev"
+          aria-label={locale === "ar" ? prevWork.titleAr : prevWork.titleEn}
+          dir="ltr"
+        >
+          <span className="wd-nav-arrow">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M11 4L6 9l5 5" />
+            </svg>
+          </span>
+          <span className="wd-nav-thumb">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={prevWork.imageUrl} alt="" aria-hidden="true" />
+          </span>
+        </Link>
+      )}
+      {nextWork && (
+        <Link
+          href={`/${locale}/portfolio/${nextWork.code}`}
+          className="wd-nav wd-nav--next"
+          aria-label={locale === "ar" ? nextWork.titleAr : nextWork.titleEn}
+          dir="ltr"
+        >
+          <span className="wd-nav-thumb">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={nextWork.imageUrl} alt="" aria-hidden="true" />
+          </span>
+          <span className="wd-nav-arrow">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M7 4l5 5-5 5" />
+            </svg>
+          </span>
+        </Link>
+      )}
 
       <style>{`
         .wd-article { padding-bottom: 8rem; }
@@ -245,7 +339,7 @@ export default async function WorkDetailPage({ params }: Props) {
         /* Below-image content area */
         .wd-content { margin-top: 1.75rem; }
 
-        /* Title + Description split */
+        /* Title + Description split — always 2 col */
         .wd-split {
           display: grid;
           grid-template-columns: auto 1fr;
@@ -256,28 +350,28 @@ export default async function WorkDetailPage({ params }: Props) {
           border-top: 1px solid var(--border-subtle);
         }
 
-        /* col1 (right in RTL) — title + location: only as wide as content */
+        /* col1 — title + location */
         .wd-col-title {
           padding-inline-end: 2.5rem;
         }
 
-        /* col2 (left in RTL) — meta + description, touching title */
-        .wd-col-desc {
-          border-inline-start: none;
+        /* col2 — metadata + description */
+        .wd-col-desc { }
+        .wd-col-desc--no-text { } /* no description, just metadata */
+
+        .wd-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          margin-bottom: 0.75rem;
         }
-        .wd-col-desc .wd-meta-row {
-          margin-bottom: 0.6rem;
-        }
+
         .wd-col-desc p {
           font-size: 0.92rem;
           line-height: 1.9;
           color: var(--text-secondary);
           margin: 0;
-        }
-        .wd-col-desc p {
-          font-size: 0.92rem;
-          line-height: 1.9;
-          color: var(--text-secondary);
         }
 
         @media (max-width: 767px) {
@@ -287,19 +381,9 @@ export default async function WorkDetailPage({ params }: Props) {
           }
           .wd-col-title { padding-inline-end: 0; }
           .wd-col-desc {
-            border-inline-start: none;
             border-top: 1px solid var(--border-subtle);
-            padding-inline-start: 0;
             padding-top: 1.5rem;
           }
-        }
-
-        .wd-meta-row {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-          margin-bottom: 0.75rem;
         }
 
         .wd-code {
@@ -407,6 +491,100 @@ export default async function WorkDetailPage({ params }: Props) {
         @media (max-width: 640px) {
           .wd-footer-row { gap: 1.5rem; }
         }
+
+        /* ── Prev / Next fixed arrows ── */
+        .wd-nav {
+          position: fixed;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          gap: 0;
+          text-decoration: none;
+          color: var(--text-muted);
+          transition: color var(--transition-fast);
+        }
+
+        .wd-nav--prev { left: 0; flex-direction: row; }
+        .wd-nav--next { right: 0; flex-direction: row-reverse; }
+
+        .wd-nav:hover { color: var(--text-primary); }
+
+        .wd-nav-arrow {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 56px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-subtle);
+          transition: background var(--transition-fast), border-color var(--transition-fast), width var(--transition-base);
+        }
+
+        .wd-nav--prev .wd-nav-arrow {
+          border-radius: 0 var(--radius-md) var(--radius-md) 0;
+          border-inline-start: none;
+        }
+
+        .wd-nav--next .wd-nav-arrow {
+          border-radius: var(--radius-md) 0 0 var(--radius-md);
+          border-inline-end: none;
+        }
+
+        .wd-nav:hover .wd-nav-arrow {
+          background: var(--bg-secondary);
+          border-color: var(--border);
+        }
+
+        /* Thumbnail — hidden by default, slides in on hover */
+        .wd-nav-thumb {
+          width: 0;
+          height: 56px;
+          overflow: hidden;
+          transition: width var(--transition-base);
+          display: block;
+          flex-shrink: 0;
+        }
+
+        .wd-nav-thumb img {
+          width: 56px;
+          height: 56px;
+          object-fit: cover;
+          display: block;
+          pointer-events: none;
+        }
+
+        .wd-nav--prev .wd-nav-thumb { border-radius: 0 var(--radius-md) var(--radius-md) 0; overflow: hidden; }
+        .wd-nav--next .wd-nav-thumb { border-radius: var(--radius-md) 0 0 var(--radius-md); overflow: hidden; }
+
+        .wd-nav:hover .wd-nav-thumb { width: 56px; }
+
+        @media (max-width: 768px) {
+          /* On mobile: move to bottom corners, small circular buttons */
+          .wd-nav {
+            top: auto;
+            bottom: 1.5rem;
+            transform: none;
+          }
+
+          .wd-nav--prev { left: 1rem; }
+          .wd-nav--next { right: 1rem; }
+
+          .wd-nav-thumb { display: none; }
+
+          .wd-nav-arrow {
+            width: 40px;
+            height: 40px;
+            border-radius: 50% !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+          }
+
+          /* Extra bottom padding so content isn't hidden behind the buttons */
+          .wd-article { padding-bottom: 7rem; }
+        }
+
       `}</style>
     </>
   );

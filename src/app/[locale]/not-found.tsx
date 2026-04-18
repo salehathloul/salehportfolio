@@ -6,17 +6,22 @@ export default async function NotFound() {
   const isAr = locale === "ar";
   const dir = isAr ? "rtl" : "ltr";
 
+  const quote = isAr
+    ? "بعض الصور لا تُلتقط — تُكتشف"
+    : "Some frames aren't captured — they're discovered";
+
   return (
     <div className="nf-wrap" dir={dir}>
+      <div className="nf-bg-quote" aria-hidden="true">{quote}</div>
       <div className="nf-inner">
         <span className="nf-code">404</span>
         <h1 className="nf-title">
-          {isAr ? "الصفحة غير موجودة" : "Page not found"}
+          {isAr ? "هذه الصفحة غير موجودة" : "This page doesn't exist"}
         </h1>
         <p className="nf-desc">
           {isAr
-            ? "الرابط الذي تبحث عنه غير موجود أو تم نقله."
-            : "The page you're looking for doesn't exist or has been moved."}
+            ? "ربما تم نقل الرابط أو حذفه. جرّب الانتقال لمكان آخر."
+            : "This link may have moved or been removed. Try heading somewhere else."}
         </p>
         <div className="nf-links">
           <Link href={`/${locale}`} className="nf-btn nf-btn--primary">
@@ -33,39 +38,61 @@ export default async function NotFound() {
 
       <style>{`
         .nf-wrap {
+          position: relative;
           min-height: 70vh;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 4rem 1.5rem;
+          overflow: hidden;
+        }
+
+        .nf-bg-quote {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: var(--font-heading);
+          font-size: clamp(1.5rem, 5vw, 3.5rem);
+          font-weight: 200;
+          color: var(--border);
+          text-align: center;
+          padding: 2rem 4rem;
+          line-height: 1.3;
+          pointer-events: none;
+          user-select: none;
+          letter-spacing: -0.02em;
         }
 
         .nf-inner {
+          position: relative;
+          z-index: 1;
           text-align: center;
           max-width: 480px;
         }
 
         .nf-code {
           display: block;
-          font-size: clamp(5rem, 20vw, 9rem);
+          font-size: clamp(4rem, 15vw, 7rem);
           font-family: var(--font-heading);
           font-weight: 200;
-          color: var(--border);
+          color: var(--text-primary);
           line-height: 1;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1rem;
           letter-spacing: -0.04em;
         }
 
         .nf-title {
           font-family: var(--font-heading);
-          font-size: clamp(1.25rem, 3vw, 1.75rem);
-          font-weight: 400;
+          font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+          font-weight: 300;
           color: var(--text-primary);
           margin: 0 0 0.75rem;
         }
 
         .nf-desc {
-          font-size: 0.9375rem;
+          font-size: 0.9rem;
           color: var(--text-muted);
           line-height: 1.7;
           margin: 0 0 2.5rem;

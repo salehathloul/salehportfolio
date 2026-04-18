@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SearchOverlay from "./SearchOverlay";
 import { useVisitor } from "@/components/auth/VisitorContext";
 import LoginModal from "@/components/auth/LoginModal";
 
@@ -35,6 +36,7 @@ interface SiteSettings {
   navAcquireVisible?: boolean | null;
   navAboutVisible?: boolean | null;
   navContactVisible?: boolean | null;
+  customLinks?: string | null; // JSON: [{id,labelAr,labelEn,url,openNew}]
 }
 
 interface HeaderProps {
@@ -50,6 +52,7 @@ export default function Header({ settings }: HeaderProps) {
   const [isDark, setIsDark] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { visitor, logout } = useVisitor();
 
   // Track dark mode for logo switch
@@ -94,12 +97,26 @@ export default function Header({ settings }: HeaderProps) {
     settings?.[key] !== false;
 
   const navLinks = [
-    { href: `/${locale}/portfolio`, label: nav(settings?.navPortfolioAr, settings?.navPortfolioEn, "portfolio"), visible: isVisible("navPortfolioVisible") },
-    { href: `/${locale}/blog`,      label: nav(settings?.navBlogAr,       settings?.navBlogEn,       "blog"),      visible: isVisible("navBlogVisible") },
-    { href: `/${locale}/acquire`,   label: nav(settings?.navAcquireAr,    settings?.navAcquireEn,    "acquire"),   visible: isVisible("navAcquireVisible") },
-    { href: `/${locale}/about`,     label: nav(settings?.navAboutAr,      settings?.navAboutEn,      "about"),     visible: isVisible("navAboutVisible") },
-    { href: `/${locale}/contact`,   label: nav(settings?.navContactAr,    settings?.navContactEn,    "contact"),   visible: isVisible("navContactVisible") },
+    { href: `/${locale}/portfolio`, label: nav(settings?.navPortfolioAr, settings?.navPortfolioEn, "portfolio"), visible: isVisible("navPortfolioVisible"), external: false },
+    { href: `/${locale}/blog`,      label: nav(settings?.navBlogAr,       settings?.navBlogEn,       "blog"),      visible: isVisible("navBlogVisible"),      external: false },
+    { href: `/${locale}/acquire`,   label: nav(settings?.navAcquireAr,    settings?.navAcquireEn,    "acquire"),   visible: isVisible("navAcquireVisible"),   external: false },
+    { href: `/${locale}/about`,     label: nav(settings?.navAboutAr,      settings?.navAboutEn,      "about"),     visible: isVisible("navAboutVisible"),     external: false },
+    { href: `/${locale}/contact`,   label: nav(settings?.navContactAr,    settings?.navContactEn,    "contact"),   visible: isVisible("navContactVisible"),   external: false },
   ].filter((l) => l.visible);
+
+  // Custom external links (added from admin settings)
+  const customNavLinks: { href: string; label: string; openNew: boolean }[] = (() => {
+    try {
+      const parsed = JSON.parse(settings?.customLinks ?? "[]");
+      return (parsed as { labelAr?: string; labelEn?: string; url?: string; openNew?: boolean }[])
+        .filter((l) => l.url)
+        .map((l) => ({
+          href: l.url!,
+          label: (locale === "ar" ? l.labelAr : l.labelEn) || l.labelAr || l.labelEn || l.url!,
+          openNew: l.openNew ?? false,
+        }));
+    } catch { return []; }
+  })();
 
   function isActive(href: string) {
     return pathname.startsWith(href);
@@ -136,10 +153,32 @@ export default function Header({ settings }: HeaderProps) {
                 {label}
               </Link>
             ))}
+            {customNavLinks.map(({ href, label, openNew }) => (
+              <a
+                key={href}
+                href={href}
+                className="nav-link"
+                target={openNew ? "_blank" : undefined}
+                rel={openNew ? "noopener noreferrer" : undefined}
+              >
+                {label}
+              </a>
+            ))}
           </nav>
 
           {/* Controls */}
           <div className="header-controls">
+            {/* Search icon */}
+            <button
+              className="header-icon-btn"
+              onClick={() => setSearchOpen(true)}
+              aria-label={locale === "ar" ? "بحث" : "Search"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </button>
             <LanguageSwitcher />
             <ThemeToggle />
 
@@ -224,6 +263,24 @@ export default function Header({ settings }: HeaderProps) {
                   </Link>
                 </motion.div>
               ))}
+              {customNavLinks.map(({ href, label, openNew }, i) => (
+                <motion.div
+                  key={`custom-${href}`}
+                  initial={{ opacity: 0, x: locale === "ar" ? 16 : -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: (navLinks.length + i) * 0.05, duration: 0.2 }}
+                >
+                  <a
+                    href={href}
+                    className="mobile-nav-link"
+                    target={openNew ? "_blank" : undefined}
+                    rel={openNew ? "noopener noreferrer" : undefined}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {label}
+                  </a>
+                </motion.div>
+              ))}
             </nav>
           </motion.div>
         )}
@@ -237,6 +294,13 @@ export default function Header({ settings }: HeaderProps) {
           aria-hidden="true"
         />
       )}
+
+      {/* Search overlay */}
+      <SearchOverlay
+        locale={locale}
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
 
       {/* Login modal */}
       {showLogin && (
@@ -425,6 +489,26 @@ export default function Header({ settings }: HeaderProps) {
           .hamburger {
             display: flex;
           }
+        }
+
+        /* ── Generic header icon button (search, etc.) ── */
+        .header-icon-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: var(--radius-md);
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: background var(--transition-fast), color var(--transition-fast);
+          flex-shrink: 0;
+        }
+        .header-icon-btn:hover {
+          background: var(--bg-secondary);
+          color: var(--text-primary);
         }
 
         /* ── Visitor login button ── */

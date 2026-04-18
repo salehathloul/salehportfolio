@@ -57,6 +57,17 @@ export async function PUT(req: NextRequest) {
     "analyticsMetaPixelId", "analyticsTiktokPixelId", "analyticsSnapPixelId",
     // per-page SEO (stored as JSON string)
     "pageSeoJson",
+    // custom external links (JSON string)
+    "customLinks",
+    // contact page links (JSON string)
+    "contactLinks",
+    // SEO/OG image
+    "seoImageUrl",
+    // Blog signature image
+    "blogSignatureImageUrl",
+    "studioVideoUrl",
+    "artistSignatureUrl",
+    "impactStats",
   ] as const;
 
   // non-nullable String fields — skip update if value is falsy (keep DB value)

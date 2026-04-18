@@ -23,6 +23,7 @@ const createSchema = z.object({
   lat: z.number().optional().nullable(),
   lng: z.number().optional().nullable(),
   mapsUrl: z.string().optional().nullable(),
+  keywords: z.string().max(500).optional().nullable(),
   categoryIds: z.array(z.string()).optional(),
   additionalImages: z.array(z.string()).optional(),
 });

@@ -202,6 +202,18 @@ export default function OrdersPage() {
           <h1 className="orders-title">الطلبات</h1>
           <p className="orders-subtitle">{orders.length} طلب</p>
         </div>
+        <a
+          href="/api/admin/export/orders"
+          download
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "0.4rem",
+            padding: "0.5rem 1.1rem", borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border)", background: "var(--bg-secondary)",
+            color: "var(--text-primary)", fontSize: "0.8rem", textDecoration: "none",
+          }}
+        >
+          ↓ تصدير CSV
+        </a>
       </div>
 
       {/* Filter tabs */}

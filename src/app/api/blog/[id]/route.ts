@@ -11,7 +11,10 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: NextRequest, { params }: Params) {
   const { id } = await params;
 
-  const post = await db.blogPost.findUnique({ where: { id } });
+  const post = await db.blogPost.findUnique({
+    where: { id },
+    include: { tags: true },
+  });
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(post);
@@ -26,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
 
-  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled } = body;
+  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled, tagIds } = body;
 
   // Slug uniqueness check (skip self)
   if (slug) {
@@ -56,7 +59,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
       ...(status !== undefined && { status }),
       ...(signatureDisabled !== undefined && { signatureDisabled }),
       ...(nowPublishing && { publishedAt: new Date() }),
+      ...(Array.isArray(tagIds) && {
+        tags: { set: tagIds.map((tid: string) => ({ id: tid })) },
+      }),
     },
+    include: { tags: true },
   });
 
   return NextResponse.json(post);

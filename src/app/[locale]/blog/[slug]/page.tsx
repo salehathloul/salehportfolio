@@ -8,6 +8,9 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import TipTapRenderer from "@/components/blog/TipTapRenderer";
 import CommentsSection from "@/components/blog/CommentsSection";
+import RelatedPosts from "@/components/blog/RelatedPosts";
+import NewsletterForm from "@/components/newsletter/NewsletterForm";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 
 async function getSettings() {
   try {
@@ -26,7 +29,10 @@ interface Props {
 
 async function getPost(slug: string) {
   try {
-    return await db.blogPost.findFirst({ where: { slug, status: "published" } });
+    return await db.blogPost.findFirst({
+      where: { slug, status: "published" },
+      include: { tags: true },
+    });
   } catch {
     return null;
   }
@@ -81,6 +87,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+function calcReadingTime(content: object | null | undefined): number {
+  if (!content) return 1;
+  let text = "";
+  function extract(node: unknown) {
+    if (!node || typeof node !== "object") return;
+    const n = node as Record<string, unknown>;
+    if (typeof n.text === "string") text += " " + n.text;
+    if (Array.isArray(n.content)) n.content.forEach(extract);
+    if (Array.isArray(n.children)) n.children.forEach(extract);
+  }
+  extract(content);
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const locale = await getLocale();
@@ -107,6 +128,9 @@ export default async function BlogPostPage({ params }: Props) {
         day: "numeric",
       }).format(new Date(post.publishedAt))
     : null;
+
+  const readingMins = calcReadingTime(content as object);
+  const readingLabel = locale === "ar" ? `${readingMins} دقيقة قراءة` : `${readingMins} min read`;
 
   // JSON-LD structured data
   const jsonLd = {
@@ -141,14 +165,35 @@ export default async function BlogPostPage({ params }: Props) {
             </svg>
             {t("title")}
           </Link>
+          <Breadcrumb
+            items={[
+              { label: locale === "ar" ? "الرئيسية" : "Home", href: `/${locale}` },
+              { label: locale === "ar" ? "المدونة" : "Blog", href: `/${locale}/blog` },
+              { label: title ?? post.slug },
+            ]}
+          />
 
           {/* Header */}
           <header className="bpost-header" dir={dir}>
             {formattedDate && (
               <time className="bpost-date">{formattedDate}</time>
             )}
+            <span className="bpost-reading-time">{readingLabel}</span>
             <h1 className="bpost-title">{title}</h1>
             <div className="bpost-divider" />
+            {post.tags && post.tags.length > 0 && (
+              <div className="bpost-tags" dir={dir}>
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag.id}
+                    href={`/${locale}/blog?tag=${tag.slug}`}
+                    className="bpost-tag-pill"
+                  >
+                    {locale === "ar" ? tag.nameAr : (tag.nameEn || tag.nameAr)}
+                  </Link>
+                ))}
+              </div>
+            )}
           </header>
 
           {/* Content */}
@@ -164,6 +209,14 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Comments */}
           <CommentsSection postId={post.id} locale={locale as "ar" | "en"} />
+
+          {/* Related posts */}
+          <RelatedPosts currentSlug={post.slug} locale={locale as "ar" | "en"} />
+
+          {/* Newsletter */}
+          <div className="bpost-newsletter">
+            <NewsletterForm locale={locale as "ar" | "en"} />
+          </div>
 
           {/* Footer nav */}
           <div className="bpost-footer" dir={dir}>
@@ -225,6 +278,19 @@ export default async function BlogPostPage({ params }: Props) {
           margin-bottom: 0.875rem;
         }
 
+        .bpost-reading-time {
+          display: inline-flex;
+          align-items: center;
+          font-size: 0.72rem;
+          color: var(--text-subtle);
+          letter-spacing: 0.04em;
+          margin-bottom: 0.875rem;
+          gap: 0.35rem;
+        }
+        .bpost-reading-time::before {
+          content: "◦";
+        }
+
         .bpost-title {
           font-family: var(--font-heading);
           font-size: clamp(1.75rem, 4vw, 2.75rem);
@@ -240,6 +306,20 @@ export default async function BlogPostPage({ params }: Props) {
           height: 1px;
           background: var(--border);
         }
+
+        /* Tags */
+        .bpost-tags {
+          display: flex; flex-wrap: wrap; gap: 0.5rem;
+          margin-top: 1.25rem;
+        }
+        .bpost-tag-pill {
+          font-size: 0.72rem; padding: 0.25rem 0.75rem;
+          border: 1px solid var(--border); border-radius: 999px;
+          color: var(--text-muted); text-decoration: none;
+          transition: border-color var(--transition-fast), color var(--transition-fast);
+          letter-spacing: 0.02em;
+        }
+        .bpost-tag-pill:hover { border-color: var(--text-secondary); color: var(--text-primary); }
 
         /* Content */
         .bpost-content { padding-top: 2rem; }
@@ -270,6 +350,12 @@ export default async function BlogPostPage({ params }: Props) {
         }
 
         .bpost-back-footer:hover { color: var(--text-primary); }
+
+        .bpost-newsletter {
+          margin-top: 4rem;
+          padding-top: 3rem;
+          border-top: 1px solid var(--border-subtle);
+        }
       `}</style>
     </>
   );

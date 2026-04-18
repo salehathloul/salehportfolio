@@ -70,6 +70,11 @@ interface Settings {
   analyticsMetaPixelId: string | null;
   analyticsTiktokPixelId: string | null;
   analyticsSnapPixelId: string | null;
+  // Custom & contact links (JSON strings)
+  customLinks: string | null;
+  contactLinks: string | null;
+  // SEO/OG image
+  seoImageUrl: string | null;
 }
 
 async function getSettings(): Promise<Settings | null> {
@@ -126,6 +131,9 @@ async function getSettings(): Promise<Settings | null> {
         analyticsMetaPixelId: true,
         analyticsTiktokPixelId: true,
         analyticsSnapPixelId: true,
+        customLinks: true,
+        contactLinks: true,
+        seoImageUrl: true,
       },
     });
   } catch {
@@ -230,7 +238,7 @@ export async function generateMetadata({
       ? (settings?.descriptionAr ?? "فنان فوتوغرافي سعودي")
       : (settings?.descriptionEn ?? "Saudi fine-art photographer");
 
-  const ogImage = settings?.heroImageUrl ?? undefined;
+  const ogImage = settings?.seoImageUrl ?? settings?.heroImageUrl ?? undefined;
 
   return {
     title: {
@@ -254,6 +262,11 @@ export async function generateMetadata({
         en: `${BASE_URL}/en`,
       },
     },
+    manifest: "/manifest.webmanifest",
+    themeColor: [
+      { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+      { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    ],
   };
 }
 
@@ -276,6 +289,17 @@ export default async function LocaleLayout({
     getMessages(),
     getSettings(),
   ]);
+
+  // Parse contact links for floating button
+  let floatingWhatsapp: string | null = null;
+  let floatingEmail: string | null = null;
+  try {
+    const cLinks = JSON.parse(settings?.contactLinks ?? "[]");
+    const wa = cLinks.find((l: { type: string; url: string }) => l.type === "whatsapp");
+    const em = cLinks.find((l: { type: string; url: string }) => l.type === "email");
+    if (wa) floatingWhatsapp = wa.url;
+    if (em) floatingEmail = em.url;
+  } catch {}
 
   // Analytics scripts — built server-side, injected once
   const analyticsScripts = buildAnalyticsScripts(settings);
@@ -339,7 +363,20 @@ export default async function LocaleLayout({
         .site-main {
           flex: 1;
         }
+
+        /* Image protection — prevent casual right-click save */
+        img {
+          -webkit-user-drag: none;
+          user-drag: none;
+          pointer-events: none;
+        }
+
+        /* Re-enable pointer events on interactive images (links, buttons) */
+        a img, button img {
+          pointer-events: auto;
+        }
       `}</style>
+      <script dangerouslySetInnerHTML={{ __html: `document.addEventListener('contextmenu',function(e){if(e.target.tagName==='IMG'){e.preventDefault();}});` }} />
     </NextIntlClientProvider>
   );
 }

@@ -14,6 +14,13 @@ const BlogEditor = dynamic(() => import("@/components/admin/BlogEditor"), {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface Tag {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  slug: string;
+}
+
 interface Post {
   id: string;
   slug: string;
@@ -25,6 +32,7 @@ interface Post {
   status: string;
   publishedAt: string | null;
   signatureDisabled: boolean;
+  tags: Tag[];
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -68,6 +76,10 @@ export default function BlogEditorPage({
   const [contentAr, setContentAr] = useState<object>({});
   const [contentEn, setContentEn] = useState<object>({});
 
+  // Tags
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
   const slugEdited = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -77,9 +89,13 @@ export default function BlogEditorPage({
 
   useEffect(() => {
     async function load() {
-      const res = await fetch(`/api/blog/${id}`);
-      if (!res.ok) { router.push("/admin/blog"); return; }
-      const data: Post = await res.json();
+      const [postRes, tagsRes] = await Promise.all([
+        fetch(`/api/blog/${id}`),
+        fetch("/api/admin/blog-tags"),
+      ]);
+      if (!postRes.ok) { router.push("/admin/blog"); return; }
+      const data: Post = await postRes.json();
+      const tags: Tag[] = tagsRes.ok ? await tagsRes.json() : [];
       setPost(data);
       setTitleAr(data.titleAr);
       setTitleEn(data.titleEn ?? "");
@@ -89,6 +105,8 @@ export default function BlogEditorPage({
       setContentAr(data.contentAr ?? {});
       setContentEn(data.contentEn ?? {});
       setSignatureDisabled(data.signatureDisabled ?? false);
+      setAllTags(tags);
+      setSelectedTagIds((data.tags ?? []).map((t: Tag) => t.id));
       setLoading(false);
     }
     load();
@@ -115,6 +133,7 @@ export default function BlogEditorPage({
         contentEn,
         status: overrideStatus ?? status,
         signatureDisabled,
+        tagIds: selectedTagIds,
       };
       const res = await fetch(`/api/blog/${id}`, {
         method: "PUT",
@@ -133,7 +152,7 @@ export default function BlogEditorPage({
         setTimeout(() => setSaveStatus("idle"), 3000);
       }
     },
-    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, id]
+    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, selectedTagIds, id]
   );
 
   // Auto-save on content change (debounce 3s)
@@ -308,6 +327,34 @@ export default function BlogEditorPage({
           {signatureDisabled ? "التوقيع مطفأ لهذه التدوينة" : "التوقيع مفعّل"}
         </span>
       </div>
+
+      {/* ── Tags ────────────────────────────────────────────────────────── */}
+      {allTags.length > 0 && (
+        <div className="editor-tags-row">
+          <span className="editor-tags-label">التصنيفات</span>
+          <div className="editor-tags-list">
+            {allTags.map((tag) => {
+              const selected = selectedTagIds.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  className={`editor-tag-pill${selected ? " selected" : ""}`}
+                  onClick={() => {
+                    setSelectedTagIds((prev) =>
+                      selected ? prev.filter((tid) => tid !== tag.id) : [...prev, tag.id]
+                    );
+                    scheduleAutoSave();
+                  }}
+                >
+                  {tag.nameAr}
+                </button>
+              );
+            })}
+            <a href="/admin/blog/tags" className="editor-tags-manage">+ إدارة التصنيفات</a>
+          </div>
+        </div>
+      )}
 
       {/* ── Language Tabs ────────────────────────────────────────────────── */}
       <div className="editor-lang-tabs">
@@ -547,6 +594,35 @@ export default function BlogEditorPage({
           background: #fff; transition: transform var(--transition-fast);
         }
         .toggle-input:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
+
+        .editor-tags-row {
+          display: flex; align-items: flex-start; gap: 0.75rem;
+          background: var(--bg-primary); border: 1px solid var(--border);
+          border-radius: var(--radius-md); padding: 0.75rem 1rem;
+          margin-bottom: 1rem; flex-wrap: wrap;
+        }
+        .editor-tags-label {
+          font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);
+          white-space: nowrap; padding-top: 0.15rem;
+        }
+        .editor-tags-list { display: flex; flex-wrap: wrap; gap: 0.4rem; flex: 1; }
+        .editor-tag-pill {
+          font-size: 0.775rem; padding: 0.2rem 0.65rem;
+          border: 1px solid var(--border); border-radius: 999px;
+          background: transparent; color: var(--text-muted); cursor: pointer;
+          transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+        }
+        .editor-tag-pill:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+        .editor-tag-pill.selected {
+          background: var(--text-primary); color: var(--bg-primary);
+          border-color: var(--text-primary);
+        }
+        .editor-tags-manage {
+          font-size: 0.75rem; color: var(--text-muted); text-decoration: none;
+          padding: 0.2rem 0; align-self: center;
+          transition: color var(--transition-fast);
+        }
+        .editor-tags-manage:hover { color: var(--text-primary); }
 
         .editor-lang-tabs {
           display: flex; gap: 0; margin-bottom: 0.75rem;

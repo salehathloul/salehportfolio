@@ -108,6 +108,9 @@ function SuccessScreen({ message }: { message: string }) {
 
 // ── Main form ──────────────────────────────────────────────────────────────────
 
+const MAX_ATTACHMENT_MB = 10;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
+
 export default function ContactForm() {
   const locale = useLocale();
   const t = useTranslations("contact.form");
@@ -116,6 +119,9 @@ export default function ContactForm() {
 
   const [serverError, setServerError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentError, setAttachmentError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const {
     register,
@@ -129,13 +135,50 @@ export default function ContactForm() {
 
   const selectedCategory = watch("category");
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setAttachmentError("");
+    const file = e.target.files?.[0] ?? null;
+    if (!file) { setAttachmentFile(null); return; }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setAttachmentError(isAr ? "نوع الملف غير مسموح. يُقبل: صور أو PDF" : "File type not allowed. Use images or PDF");
+      setAttachmentFile(null);
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+      setAttachmentError(isAr ? `الحجم يتجاوز ${MAX_ATTACHMENT_MB}MB` : `File exceeds ${MAX_ATTACHMENT_MB}MB`);
+      setAttachmentFile(null);
+      e.target.value = "";
+      return;
+    }
+    setAttachmentFile(file);
+  }
+
   const onSubmit = async (data: FormValues) => {
     setServerError("");
     try {
+      let attachmentUrl: string | undefined;
+
+      // Upload attachment if present
+      if (attachmentFile) {
+        setUploading(true);
+        const fd = new FormData();
+        fd.append("file", attachmentFile);
+        const upRes = await fetch("/api/contact/upload", { method: "POST", body: fd });
+        setUploading(false);
+        if (!upRes.ok) {
+          const upErr = await upRes.json().catch(() => ({}));
+          setServerError(upErr.error ?? (isAr ? "فشل رفع المرفق" : "Attachment upload failed"));
+          return;
+        }
+        const upData = await upRes.json();
+        attachmentUrl = upData.url;
+      }
+
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, attachmentUrl }),
       });
       if (!res.ok) throw new Error("failed");
       setSubmitted(true);
@@ -249,15 +292,47 @@ export default function ContactForm() {
             )}
           </div>
 
+          {/* Attachment */}
+          <div className="cf-field">
+            <label className="cf-label" htmlFor="cf-attachment">
+              {isAr ? "مرفق (اختياري — صورة أو PDF، بحد أقصى 10MB)" : "Attachment (optional — image or PDF, max 10MB)"}
+            </label>
+            <label className="cf-file-label" htmlFor="cf-attachment">
+              <span className="cf-file-icon">📎</span>
+              <span className="cf-file-text">
+                {attachmentFile
+                  ? attachmentFile.name
+                  : (isAr ? "اختر ملفاً..." : "Choose a file...")}
+              </span>
+              {attachmentFile && (
+                <button
+                  type="button"
+                  className="cf-file-remove"
+                  onClick={(e) => { e.preventDefault(); setAttachmentFile(null); setAttachmentError(""); const inp = document.getElementById("cf-attachment") as HTMLInputElement; if (inp) inp.value = ""; }}
+                >
+                  ×
+                </button>
+              )}
+            </label>
+            <input
+              id="cf-attachment"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+            {attachmentError && <span className="cf-error">{attachmentError}</span>}
+          </div>
+
           {/* Server error */}
           {serverError && <p className="cf-server-error">{serverError}</p>}
 
           <button
             type="submit"
             className="cf-submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || uploading}
           >
-            {isSubmitting ? (
+            {(isSubmitting || uploading) ? (
               <span className="cf-spinner" />
             ) : (
               t("submit")
@@ -403,6 +478,38 @@ export default function ContactForm() {
 
         @keyframes cf-spin {
           to { transform: rotate(360deg); }
+        }
+
+        /* File upload */
+        .cf-file-label {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          padding: 0.75rem 1rem;
+          border: 1px dashed var(--border);
+          border-radius: var(--radius-md);
+          background: var(--bg-secondary);
+          cursor: pointer;
+          font-size: 0.875rem;
+          color: var(--text-secondary);
+          transition: border-color 0.15s, color 0.15s;
+        }
+        .cf-file-label:hover {
+          border-color: var(--text-muted);
+          color: var(--text-primary);
+        }
+        .cf-file-icon { flex-shrink: 0; font-size: 1rem; }
+        .cf-file-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cf-file-remove {
+          flex-shrink: 0;
+          width: 20px; height: 20px;
+          border: none; border-radius: 50%;
+          background: var(--border);
+          color: var(--text-primary);
+          cursor: pointer;
+          font-size: 0.9rem;
+          display: flex; align-items: center; justify-content: center;
+          line-height: 1;
         }
       `}</style>
     </AnimatePresence>

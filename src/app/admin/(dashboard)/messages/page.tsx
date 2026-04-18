@@ -12,6 +12,7 @@ interface ContactMessage {
   category: string;
   message: string;
   status: string;
+  attachmentUrl?: string | null;
   createdAt: string;
 }
 
@@ -103,6 +104,26 @@ function MessageDetail({
           {/* Message */}
           <div className="msg-body-text">{msg.message}</div>
 
+          {/* Attachment */}
+          {msg.attachmentUrl && (
+            <div style={{ marginTop: "1rem" }}>
+              <a
+                href={msg.attachmentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.4rem",
+                  padding: "0.45rem 0.9rem", borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border)", fontSize: "0.8rem",
+                  color: "var(--text-primary)", textDecoration: "none",
+                  background: "var(--bg-secondary)",
+                }}
+              >
+                📎 عرض المرفق
+              </a>
+            </div>
+          )}
+
           {/* Status actions */}
           <div className="msg-actions">
             {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -155,6 +176,18 @@ export default function MessagesPage() {
           </h1>
           <p className="messages-subtitle">{messages.length} رسالة</p>
         </div>
+        <a
+          href="/api/admin/export/messages"
+          download
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "0.4rem",
+            padding: "0.5rem 1.1rem", borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border)", background: "var(--bg-secondary)",
+            color: "var(--text-primary)", fontSize: "0.8rem", textDecoration: "none",
+          }}
+        >
+          ↓ تصدير CSV
+        </a>
       </div>
 
       {/* Filters */}

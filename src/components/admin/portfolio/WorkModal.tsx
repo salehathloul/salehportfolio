@@ -28,6 +28,7 @@ const schema = z.object({
   lat: z.number().optional().nullable(),
   lng: z.number().optional().nullable(),
   mapsUrl: z.string().url().optional().nullable().or(z.literal("").transform(() => null)),
+  keywords: z.string().max(500).optional().nullable(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -54,6 +55,7 @@ export interface WorkFormData {
   lat?: number | null;
   lng?: number | null;
   mapsUrl?: string | null;
+  keywords?: string | null;
   additionalImages?: string[];
 }
 
@@ -114,6 +116,7 @@ export default function WorkModal({
       lat: null,
       lng: null,
       mapsUrl: "",
+      keywords: "",
     },
   });
 
@@ -166,6 +169,7 @@ export default function WorkModal({
         lat: initialData?.lat ?? null,
         lng: initialData?.lng ?? null,
         mapsUrl: initialData?.mapsUrl ?? "",
+        keywords: initialData?.keywords ?? "",
       });
     }
   }, [open, initialData, reset]);
@@ -406,6 +410,22 @@ export default function WorkModal({
               </div>
             </FormSection>
 
+            {/* Keywords */}
+            <FormSection title="كلمات مفتاحية (SEO)">
+              <Field
+                label="الكلمات المفتاحية"
+                hint="مخفية عن الزوار — تُحسّن ظهور الصورة في محركات البحث. افصل بين الكلمات بفاصلة."
+                error={errors.keywords?.message}
+              >
+                <input
+                  {...register("keywords")}
+                  placeholder="صحراء، رمال، طبيعة، سعودية، desert, sand, nature"
+                  className="inp"
+                  dir="auto"
+                />
+              </Field>
+            </FormSection>
+
             {/* Options */}
             <FormSection title="الخيارات">
               <div className="checks-row">
@@ -458,11 +478,12 @@ function FormSection({ title, children }: { title: string; children: React.React
 }
 
 function Field({
-  label, error, required, children,
-}: { label: string; error?: string; required?: boolean; children: React.ReactNode }) {
+  label, error, required, hint, children,
+}: { label: string; error?: string; required?: boolean; hint?: string; children: React.ReactNode }) {
   return (
     <div className="field">
       <label className="field-label">{label}{required && <span className="required">*</span>}</label>
+      {hint && <p className="field-hint">{hint}</p>}
       {children}
       {error && <FieldError>{error}</FieldError>}
     </div>
@@ -606,6 +627,13 @@ function ModalStyles() {
       .required {
         color: #e53e3e;
         margin-right: 2px;
+      }
+
+      .field-hint {
+        font-size: 0.75rem;
+        color: var(--text-subtle);
+        margin-bottom: 0.35rem;
+        line-height: 1.5;
       }
 
       .field-error {

@@ -498,9 +498,6 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
         /* ── Slideshow ── */
         .ttr-slideshow {
           margin: 2.5rem 0;
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          background: var(--bg-secondary);
         }
 
         .ttr-ss-stage {
@@ -508,6 +505,7 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
           aspect-ratio: 16/9;
           overflow: hidden;
           cursor: pointer;
+          border-radius: var(--radius-md);
         }
 
         .ttr-ss-img {
@@ -522,47 +520,46 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
-          background: rgba(0,0,0,0.5);
+          background: rgba(0,0,0,0.28);
           border: none;
           border-radius: 50%;
-          width: 36px;
-          height: 36px;
-          color: #fff;
+          width: 30px;
+          height: 30px;
+          color: rgba(255,255,255,0.9);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 2;
           transition: background 150ms;
+          backdrop-filter: blur(4px);
         }
-        .ttr-ss-arrow:hover { background: rgba(0,0,0,0.75); }
-        .ttr-ss-prev { left: 0.75rem; }
-        .ttr-ss-next { right: 0.75rem; }
+        .ttr-ss-arrow:hover { background: rgba(0,0,0,0.55); }
+        .ttr-ss-prev { left: 0.625rem; }
+        .ttr-ss-next { right: 0.625rem; }
 
         .ttr-ss-counter {
           position: absolute;
           bottom: 0.6rem;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0,0,0,0.5);
-          color: #fff;
-          font-size: 0.72rem;
-          padding: 2px 8px;
-          border-radius: 999px;
+          right: 0.75rem;
+          color: rgba(255,255,255,0.75);
+          font-size: 0.62rem;
+          letter-spacing: 0.06em;
           z-index: 2;
           white-space: nowrap;
+          text-shadow: 0 1px 4px rgba(0,0,0,0.5);
         }
 
         .ttr-ss-dots {
           display: flex;
           justify-content: center;
-          gap: 6px;
-          padding: 0.6rem 0;
+          gap: 5px;
+          padding: 0.6rem 0 0.1rem;
         }
 
         .ttr-ss-dot {
-          width: 6px;
-          height: 6px;
+          width: 4px;
+          height: 4px;
           border-radius: 999px;
           border: none;
           cursor: pointer;
@@ -571,8 +568,8 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
           transition: all 0.25s ease;
         }
         .ttr-ss-dot.active {
-          width: 18px;
-          background: var(--text-primary);
+          width: 14px;
+          background: var(--text-secondary);
         }
 
         /* ── Video ── */

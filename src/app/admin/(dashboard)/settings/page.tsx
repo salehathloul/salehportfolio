@@ -83,6 +83,16 @@ export default async function SettingsPage() {
         blogSignatureEn: settings?.blogSignatureEn ?? null,
         blogSignaturePos: settings?.blogSignaturePos ?? "bottom",
         blogSignatureOn: settings?.blogSignatureOn ?? true,
+        blogSignatureImageUrl: settings?.blogSignatureImageUrl ?? null,
+        // Artist identity
+        studioVideoUrl: settings?.studioVideoUrl ?? null,
+        artistSignatureUrl: settings?.artistSignatureUrl ?? null,
+        impactStats: settings?.impactStats ?? null,
+        // SEO image
+        seoImageUrl: settings?.seoImageUrl ?? null,
+        // Custom & contact links
+        customLinks: settings?.customLinks ?? null,
+        contactLinks: settings?.contactLinks ?? null,
         // Analytics
         analyticsGa4Id: settings?.analyticsGa4Id ?? null,
         analyticsGtmId: settings?.analyticsGtmId ?? null,

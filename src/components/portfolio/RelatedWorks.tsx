@@ -56,7 +56,7 @@ export default async function RelatedWorks({ currentCode, categoryId, locale }: 
           const title = isAr ? work.titleAr : work.titleEn;
           return (
             <Link key={work.id} href={`/${locale}/portfolio/${work.code}`} className="rw-item">
-              <div className="rw-img-wrap" style={{ aspectRatio: `${work.width} / ${work.height}` }}>
+              <div className="rw-img-wrap">
                 <Image
                   src={work.imageUrl}
                   alt={title}
@@ -127,10 +127,10 @@ export default async function RelatedWorks({ currentCode, categoryId, locale }: 
         .rw-img-wrap {
           position: relative;
           width: 100%;
+          aspect-ratio: 4 / 3;
           overflow: hidden;
           border-radius: var(--radius-sm);
           background: var(--bg-secondary);
-          max-height: 220px;
         }
 
         .rw-img {
