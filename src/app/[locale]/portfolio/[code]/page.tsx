@@ -177,6 +177,26 @@ export default async function WorkDetailPage({ params }: Props) {
             />
           </div>
 
+          {/* Mobile-only inline nav — directly below image */}
+          {(prevWork || nextWork) && (
+            <div className="wd-mobile-nav" dir="ltr">
+              {prevWork ? (
+                <Link href={`/${locale}/portfolio/${prevWork.code}`} className="wd-mnav-btn" aria-label={locale === "ar" ? prevWork.titleAr : prevWork.titleEn}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M10 3L5 8l5 5" />
+                  </svg>
+                </Link>
+              ) : <span className="wd-mnav-btn wd-mnav-btn--empty" />}
+              {nextWork ? (
+                <Link href={`/${locale}/portfolio/${nextWork.code}`} className="wd-mnav-btn" aria-label={locale === "ar" ? nextWork.titleAr : nextWork.titleEn}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M6 3l5 5-5 5" />
+                  </svg>
+                </Link>
+              ) : <span className="wd-mnav-btn wd-mnav-btn--empty" />}
+            </div>
+          )}
+
           {/* Below image */}
           <div className="wd-content" dir={dir}>
             <div className="wd-split">
@@ -556,30 +576,40 @@ export default async function WorkDetailPage({ params }: Props) {
 
         .wd-nav:hover .wd-nav-thumb { width: 56px; }
 
-        @media (max-width: 768px) {
-          /* On mobile: move to bottom corners, small circular buttons */
-          .wd-nav {
-            top: auto;
-            bottom: 1.5rem;
-            transform: none;
-          }
-
-          .wd-nav--prev { left: 1rem; }
-          .wd-nav--next { right: 1rem; }
-
-          .wd-nav-thumb { display: none; }
-
-          .wd-nav-arrow {
-            width: 40px;
-            height: 40px;
-            border-radius: 50% !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-          }
-
-          /* Extra bottom padding so content isn't hidden behind the buttons */
-          .wd-article { padding-bottom: 7rem; }
+        /* Mobile inline nav — below image */
+        .wd-mobile-nav {
+          display: none;
         }
+
+        @media (max-width: 768px) {
+          /* Hide fixed side arrows */
+          .wd-nav { display: none; }
+
+          /* Show inline nav row */
+          .wd-mobile-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0 0;
+          }
+
+          .wd-article { padding-bottom: 5rem; }
+        }
+
+        .wd-mnav-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 50%;
+          color: var(--text-muted);
+          text-decoration: none;
+          transition: background var(--transition-fast), color var(--transition-fast);
+        }
+        .wd-mnav-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .wd-mnav-btn--empty { visibility: hidden; }
 
       `}</style>
     </>

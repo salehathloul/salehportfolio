@@ -115,6 +115,7 @@ function SlideshowBlock({ images }: { images: GalleryImageEntry[] }) {
   const resolved = images.map(resolveGallerySrc);
   const count = resolved.length;
   const [current, setCurrent] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   if (!count) return null;
   const img = resolved[current];
@@ -122,10 +123,31 @@ function SlideshowBlock({ images }: { images: GalleryImageEntry[] }) {
   function prev() { setCurrent((c) => (c > 0 ? c - 1 : count - 1)); }
   function next() { setCurrent((c) => (c < count - 1 ? c + 1 : 0)); }
 
+  function onTouchStart(e: React.TouchEvent) {
+    setTouchStartX(e.touches[0].clientX);
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchStartX === null) return;
+    const delta = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(delta) > 40) {
+      if (delta > 0) next(); else prev();
+    }
+    setTouchStartX(null);
+  }
+
   return (
     <div className="ttr-slideshow">
       {/* Main image */}
-      <div className="ttr-ss-stage" onClick={() => lb.open(resolved, current)} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && lb.open(resolved, current)}>
+      <div
+        className="ttr-ss-stage"
+        onClick={() => lb.open(resolved, current)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === "Enter" && lb.open(resolved, current)}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img key={current} src={img.src} alt={img.alt} className="ttr-ss-img" loading="lazy" />
 
