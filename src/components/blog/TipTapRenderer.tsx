@@ -65,8 +65,10 @@ function GalleryImageCard({ entry, onOpen, fullWidth }: { entry: GalleryImageEnt
   if (!src) return null;
   return (
     <div className={`ttr-gallery-item${fullWidth ? " ttr-gallery-item--full" : ""}`} onClick={onOpen} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && onOpen()}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className="ttr-gallery-img" loading="lazy" />
+      <div className="ttr-gallery-img-box">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="ttr-gallery-img" loading="lazy" />
+      </div>
     </div>
   );
 }
@@ -498,16 +500,28 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
           overflow: hidden;
           cursor: pointer;
           background: var(--bg-secondary);
-          aspect-ratio: 1;
         }
 
         /* Full-width lonely last item */
         .ttr-gallery-item--full {
           grid-column: 1 / -1;
-          aspect-ratio: 2 / 1;
+        }
+
+        /* Padding-bottom trick for reliable fixed aspect ratio */
+        .ttr-gallery-img-box {
+          position: relative;
+          width: 100%;
+          padding-bottom: 100%; /* 1:1 square */
+          overflow: hidden;
+        }
+
+        .ttr-gallery-item--full .ttr-gallery-img-box {
+          padding-bottom: 50%; /* 2:1 wide */
         }
 
         .ttr-gallery-img {
+          position: absolute;
+          inset: 0;
           width: 100%;
           height: 100%;
           object-fit: cover;
