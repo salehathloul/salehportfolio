@@ -29,6 +29,7 @@ const schema = z.object({
   lng: z.number().optional().nullable(),
   mapsUrl: z.string().url().optional().nullable().or(z.literal("").transform(() => null)),
   keywords: z.string().max(500).optional().nullable(),
+  scheduledAt: z.string().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -56,6 +57,7 @@ export interface WorkFormData {
   lng?: number | null;
   mapsUrl?: string | null;
   keywords?: string | null;
+  scheduledAt?: string | null;
   additionalImages?: string[];
 }
 
@@ -117,6 +119,7 @@ export default function WorkModal({
       lng: null,
       mapsUrl: "",
       keywords: "",
+      scheduledAt: "",
     },
   });
 
@@ -170,6 +173,9 @@ export default function WorkModal({
         lng: initialData?.lng ?? null,
         mapsUrl: initialData?.mapsUrl ?? "",
         keywords: initialData?.keywords ?? "",
+        scheduledAt: initialData?.scheduledAt
+          ? new Date(initialData.scheduledAt).toISOString().slice(0, 16)
+          : "",
       });
     }
   }, [open, initialData, reset]);
@@ -444,6 +450,21 @@ export default function WorkModal({
                   </span>
                 </label>
               </div>
+            </FormSection>
+
+            {/* Scheduling */}
+            <FormSection title="جدولة النشر">
+              <Field
+                label="نشر تلقائي في"
+                hint="اتركه فارغاً لنشر فوري. إذا حُدِّد وقت، سيُنشر العمل تلقائياً في ذلك الوقت ويُوقف خيار 'منشور' مؤقتاً."
+              >
+                <input
+                  type="datetime-local"
+                  {...register("scheduledAt")}
+                  className="inp"
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </Field>
             </FormSection>
 
           </div>

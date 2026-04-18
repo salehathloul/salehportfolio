@@ -148,6 +148,7 @@ model Work {
   exifIso         String?   // الحساسية: مثال "ISO 400"
   exifFocalLength String?   // البُعد البؤري: مثال "50mm"
   keywords      String?      // كلمات مفتاحية SEO مخفية (فاصلة بين كل كلمة)
+  scheduledAt   DateTime?    // وقت النشر التلقائي المجدوَل (null = غير مجدول)
   acquireItem   AcquireItem?
   images        WorkImage[]
   createdAt     DateTime     @default(now())
@@ -172,6 +173,7 @@ model BlogPost {
   contentEn   Json?
   status            String        @default("draft")
   publishedAt       DateTime?
+  scheduledAt       DateTime?    // وقت النشر التلقائي المجدوَل
   signatureDisabled Boolean       @default(false)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -223,14 +225,15 @@ model MagicToken {
 }
 
 model AcquireItem {
-  id        String        @id @default(cuid())
-  work      Work          @relation(fields: [workId], references: [id])
-  workId    String        @unique
-  isActive  Boolean       @default(true)
-  specs     Json?         // Array of { labelAr: string; labelEn: string; value: string }
-  sizes     AcquireSize[]
-  orders    Order[]
-  createdAt DateTime      @default(now())
+  id          String        @id @default(cuid())
+  work        Work          @relation(fields: [workId], references: [id])
+  workId      String        @unique
+  isActive    Boolean       @default(true)
+  scheduledAt DateTime?    // وقت التفعيل التلقائي المجدوَل
+  specs       Json?         // Array of { labelAr: string; labelEn: string; value: string }
+  sizes       AcquireSize[]
+  orders      Order[]
+  createdAt   DateTime      @default(now())
 }
 
 model AcquireSize {

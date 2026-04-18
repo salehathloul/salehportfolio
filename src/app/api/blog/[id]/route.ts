@@ -29,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
 
-  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled, tagIds } = body;
+  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled, tagIds, scheduledAt } = body;
 
   // Slug uniqueness check (skip self)
   if (slug) {
@@ -46,6 +46,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   const wasPublished = current.status === "published";
   const nowPublishing = status === "published" && !wasPublished;
+  // If scheduledAt is set, keep status as draft until cron fires
+  const effectiveStatus = scheduledAt ? "draft" : status;
 
   const post = await db.blogPost.update({
     where: { id },
@@ -56,9 +58,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
       ...(coverImage !== undefined && { coverImage }),
       ...(contentAr !== undefined && { contentAr }),
       ...(contentEn !== undefined && { contentEn }),
-      ...(status !== undefined && { status }),
+      ...(effectiveStatus !== undefined && { status: effectiveStatus }),
       ...(signatureDisabled !== undefined && { signatureDisabled }),
-      ...(nowPublishing && { publishedAt: new Date() }),
+      ...(nowPublishing && !scheduledAt && { publishedAt: new Date() }),
+      scheduledAt: scheduledAt !== undefined
+        ? (scheduledAt ? new Date(scheduledAt) : null)
+        : undefined,
       ...(Array.isArray(tagIds) && {
         tags: { set: tagIds.map((tid: string) => ({ id: tid })) },
       }),

@@ -2,6 +2,12 @@
   "buildCommand": "npx prisma generate && next build",
   "framework": "nextjs",
   "regions": ["fra1"],
+  "crons": [
+    {
+      "path": "/api/cron/publish",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/fonts/(.*)",

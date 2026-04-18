@@ -11,6 +11,7 @@ interface Post {
   coverImage: string | null;
   status: string;
   publishedAt: string | null;
+  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -191,8 +192,10 @@ export default function BlogListPage() {
               {/* Info */}
               <div className="blog-post-info">
                 <div className="blog-post-top">
-                  <span className="blog-post-status" style={{ color: STATUS_COLORS[post.status] }}>
-                    ● {STATUS_LABELS[post.status] ?? post.status}
+                  <span className="blog-post-status" style={{ color: post.scheduledAt ? "#6366f1" : STATUS_COLORS[post.status] }}>
+                    ● {post.scheduledAt
+                      ? `مجدول — ${new Date(post.scheduledAt).toLocaleString("ar-SA")}`
+                      : (STATUS_LABELS[post.status] ?? post.status)}
                   </span>
                   <span className="blog-post-date">
                     {new Date(post.updatedAt).toLocaleDateString("ar-SA")}

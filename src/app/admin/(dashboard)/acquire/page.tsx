@@ -27,6 +27,7 @@ interface WorkImage {
 interface AcquireItem {
   id: string;
   isActive: boolean;
+  scheduledAt?: string | null;
   specs?: Spec[] | null;
   work: {
     id: string;
@@ -660,7 +661,16 @@ export default function AcquireAdminPage() {
     await fetch(`/api/acquire/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !item.isActive }),
+      body: JSON.stringify({ isActive: !item.isActive, scheduledAt: null }),
+    });
+    fetchItems();
+  }
+
+  async function scheduleItem(item: AcquireItem, scheduledAt: string) {
+    await fetch(`/api/acquire/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduledAt: scheduledAt || null }),
     });
     fetchItems();
   }
@@ -721,9 +731,11 @@ export default function AcquireAdminPage() {
                     <div className="acquire-card-top">
                       <span className="acquire-card-code">{item.work.code}</span>
                       <span
-                        className={`acquire-badge ${item.isActive ? "active" : "inactive"}`}
+                        className={`acquire-badge ${item.scheduledAt ? "scheduled" : item.isActive ? "active" : "inactive"}`}
                       >
-                        {item.isActive ? "متاح" : "موقوف"}
+                        {item.scheduledAt
+                          ? `🕐 ${new Date(item.scheduledAt).toLocaleDateString("ar-SA")}`
+                          : item.isActive ? "متاح" : "موقوف"}
                       </span>
                     </div>
                     <h3 className="acquire-card-title">{item.work.titleAr}</h3>
@@ -741,6 +753,17 @@ export default function AcquireAdminPage() {
                     >
                       {item.isActive ? "إيقاف" : "تفعيل"}
                     </button>
+                    {/* Inline schedule picker */}
+                    {!item.isActive && (
+                      <input
+                        type="datetime-local"
+                        className="aq-schedule-input"
+                        defaultValue={item.scheduledAt ? new Date(item.scheduledAt).toISOString().slice(0,16) : ""}
+                        min={new Date().toISOString().slice(0, 16)}
+                        title="جدولة التفعيل التلقائي"
+                        onChange={(e) => scheduleItem(item, e.target.value)}
+                      />
+                    )}
                     <button
                       onClick={() => setEditingItem(item)}
                       className="btn-outline btn-sm"
@@ -850,7 +873,16 @@ export default function AcquireAdminPage() {
         }
         .acquire-badge.active { background: #d1fae5; color: #065f46; }
         .acquire-badge.inactive { background: var(--bg-secondary); color: var(--text-muted); }
+        .acquire-badge.scheduled { background: #ede9fe; color: #5b21b6; }
         .dark .acquire-badge.active { background: #064e3b; color: #6ee7b7; }
+        .dark .acquire-badge.scheduled { background: #2e1065; color: #c4b5fd; }
+
+        .aq-schedule-input {
+          padding: 0.25rem 0.5rem; font-size: 0.72rem;
+          border: 1px solid var(--border); border-radius: var(--radius-sm);
+          background: var(--bg-primary); color: var(--text-primary);
+          cursor: pointer; min-width: 0; max-width: 160px;
+        }
         .acquire-card-title { font-size: 1rem; font-weight: 500; color: var(--text-primary); margin-bottom: 0.25rem; }
         .acquire-card-stats { font-size: 0.8125rem; color: var(--text-muted); display: flex; gap: 0.375rem; }
         .acquire-card-actions {

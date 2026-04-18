@@ -24,6 +24,7 @@ const createSchema = z.object({
   lng: z.number().optional().nullable(),
   mapsUrl: z.string().optional().nullable(),
   keywords: z.string().max(500).optional().nullable(),
+  scheduledAt: z.string().optional().nullable(),
   categoryIds: z.array(z.string()).optional(),
   additionalImages: z.array(z.string()).optional(),
 });
@@ -80,13 +81,18 @@ export async function POST(req: NextRequest) {
   const maxOrder = await db.work.aggregate({ _max: { order: true } });
   const order = (maxOrder._max.order ?? 0) + 1;
 
-  const { additionalImages, categoryIds, ...workData } = parsed.data;
+  const { additionalImages, categoryIds, scheduledAt, ...workData } = parsed.data;
+
+  // If scheduledAt is set, force isPublished = false until the cron publishes it
+  const isPublished = scheduledAt ? false : workData.isPublished;
 
   const work = await db.work.create({
     data: {
       ...workData,
+      isPublished,
       order,
       dateTaken: workData.dateTaken ? new Date(workData.dateTaken) : null,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       categories: categoryIds?.length
         ? { connect: categoryIds.map((id) => ({ id })) }
         : undefined,

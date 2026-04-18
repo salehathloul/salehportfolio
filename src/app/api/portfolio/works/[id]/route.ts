@@ -24,6 +24,7 @@ const updateSchema = z.object({
   lng: z.number().optional().nullable(),
   mapsUrl: z.string().optional().nullable(),
   keywords: z.string().max(500).optional().nullable(),
+  scheduledAt: z.string().optional().nullable(),
   categoryIds: z.array(z.string()).optional(),
   additionalImages: z.array(z.string()).optional(),
 });
@@ -74,12 +75,24 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
   }
 
-  const { additionalImages, categoryIds, ...rest } = parsed.data;
+  const { additionalImages, categoryIds, scheduledAt, ...rest } = parsed.data;
+
+  // If scheduledAt is being set, force isPublished = false
+  const isPublished =
+    scheduledAt !== undefined && scheduledAt !== null
+      ? false
+      : rest.isPublished;
+
   const data = {
     ...rest,
+    isPublished,
     dateTaken:
       rest.dateTaken !== undefined
         ? rest.dateTaken ? new Date(rest.dateTaken) : null
+        : undefined,
+    scheduledAt:
+      scheduledAt !== undefined
+        ? scheduledAt ? new Date(scheduledAt) : null
         : undefined,
   };
 

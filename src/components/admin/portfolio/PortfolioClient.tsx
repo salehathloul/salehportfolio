@@ -45,6 +45,7 @@ interface Work {
   lng?: number | null;
   mapsUrl?: string | null;
   keywords?: string | null;
+  scheduledAt?: string | null;
 }
 
 type GridLayout = "grid" | "masonry" | "scattered";
@@ -149,6 +150,7 @@ export default function PortfolioClient({
       lng: work.lng ?? null,
       mapsUrl: (work as { mapsUrl?: string | null }).mapsUrl ?? null,
       keywords: (work as { keywords?: string | null }).keywords ?? null,
+      scheduledAt: (work as { scheduledAt?: string | null }).scheduledAt ?? null,
     });
     setModalError("");
     setModalOpen(true);
@@ -580,7 +582,14 @@ function SortableWorkCard({
           sizes="(max-width: 768px) 50vw, 200px"
           unoptimized
         />
-        {!work.isPublished && <div className="work-badge work-badge--hidden">مخفي</div>}
+        {(work as { scheduledAt?: string | null }).scheduledAt && (
+          <div className="work-badge work-badge--scheduled">
+            🕐 {new Date((work as { scheduledAt: string }).scheduledAt).toLocaleDateString("ar-SA")}
+          </div>
+        )}
+        {!work.isPublished && !(work as { scheduledAt?: string | null }).scheduledAt && (
+          <div className="work-badge work-badge--hidden">مخفي</div>
+        )}
         {work.isFeatured && <div className="work-badge work-badge--featured">★</div>}
       </div>
 
@@ -956,6 +965,11 @@ function PortfolioStyles() {
 
       .work-badge--hidden {
         background: rgba(0,0,0,0.6);
+        color: #fff;
+      }
+
+      .work-badge--scheduled {
+        background: rgba(99,102,241,0.85);
         color: #fff;
       }
 

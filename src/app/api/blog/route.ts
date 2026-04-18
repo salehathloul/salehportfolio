@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       coverImage: true,
       status: true,
       publishedAt: true,
+      scheduledAt: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
-  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status } = body;
+  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, scheduledAt } = body;
 
   if (!titleAr || !slug) {
     return NextResponse.json({ error: "titleAr and slug are required" }, { status: 400 });
@@ -57,8 +58,9 @@ export async function POST(req: NextRequest) {
       coverImage: coverImage ?? null,
       contentAr: contentAr ?? {},
       contentEn: contentEn ?? null,
-      status: status ?? "draft",
-      publishedAt: status === "published" ? new Date() : null,
+      status: scheduledAt ? "draft" : (status ?? "draft"),
+      publishedAt: status === "published" && !scheduledAt ? new Date() : null,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
     },
   });
 

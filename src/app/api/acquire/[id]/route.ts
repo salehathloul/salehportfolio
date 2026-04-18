@@ -15,11 +15,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
 
+  // If scheduledAt is set, keep isActive = false until cron fires
+  const isActive = body.scheduledAt
+    ? false
+    : body.isActive !== undefined ? body.isActive : undefined;
+
   const item = await db.acquireItem.update({
     where: { id },
     data: {
-      ...(body.isActive !== undefined && { isActive: body.isActive }),
+      ...(isActive !== undefined && { isActive }),
       ...(body.specs !== undefined && { specs: body.specs }),
+      ...(body.scheduledAt !== undefined && {
+        scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
+      }),
     },
     include: { sizes: true },
   });

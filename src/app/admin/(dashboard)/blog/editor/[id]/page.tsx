@@ -72,6 +72,8 @@ export default function BlogEditorPage({
   const [slug, setSlug] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState("draft");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [showScheduler, setShowScheduler] = useState(false);
   const [signatureDisabled, setSignatureDisabled] = useState(false);
   const [contentAr, setContentAr] = useState<object>({});
   const [contentEn, setContentEn] = useState<object>({});
@@ -102,6 +104,11 @@ export default function BlogEditorPage({
       setSlug(data.slug);
       setCoverImage(data.coverImage ?? "");
       setStatus(data.status);
+      const sched = (data as { scheduledAt?: string | null }).scheduledAt;
+      if (sched) {
+        setScheduledAt(new Date(sched).toISOString().slice(0, 16));
+        setShowScheduler(true);
+      }
       setContentAr(data.contentAr ?? {});
       setContentEn(data.contentEn ?? {});
       setSignatureDisabled(data.signatureDisabled ?? false);
@@ -134,6 +141,7 @@ export default function BlogEditorPage({
         status: overrideStatus ?? status,
         signatureDisabled,
         tagIds: selectedTagIds,
+        scheduledAt: scheduledAt || null,
       };
       const res = await fetch(`/api/blog/${id}`, {
         method: "PUT",
@@ -152,7 +160,7 @@ export default function BlogEditorPage({
         setTimeout(() => setSaveStatus("idle"), 3000);
       }
     },
-    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, selectedTagIds, id]
+    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, selectedTagIds, scheduledAt, id]
   );
 
   // Auto-save on content change (debounce 3s)
@@ -212,7 +220,18 @@ export default function BlogEditorPage({
             {showPreview ? "إخفاء المعاينة" : "معاينة"}
           </button>
 
+          {/* Schedule toggle */}
           {status !== "published" && (
+            <button
+              className={`btn-outline${showScheduler ? " btn-outline--active" : ""}`}
+              onClick={() => { setShowScheduler(v => !v); if (showScheduler) setScheduledAt(""); }}
+              title="جدولة النشر"
+            >
+              🕐 جدولة
+            </button>
+          )}
+
+          {status !== "published" && !scheduledAt && (
             <button
               className="btn-outline"
               onClick={() => save("published")}
@@ -240,6 +259,30 @@ export default function BlogEditorPage({
           </button>
         </div>
       </div>
+
+      {/* ── Scheduler bar ──────────────────────────────────────────────── */}
+      {showScheduler && status !== "published" && (
+        <div className="editor-scheduler-bar">
+          <span className="editor-scheduler-label">نشر تلقائي في:</span>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            min={new Date().toISOString().slice(0, 16)}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            className="editor-scheduler-input"
+          />
+          {scheduledAt && (
+            <button className="editor-scheduler-clear" onClick={() => setScheduledAt("")} title="إلغاء الجدولة">
+              ✕
+            </button>
+          )}
+          {scheduledAt && (
+            <span className="editor-scheduler-hint">
+              سيُنشر في {new Date(scheduledAt).toLocaleString("ar-SA")}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* ── Meta fields ─────────────────────────────────────────────────── */}
       <div className="editor-meta-section">
@@ -516,6 +559,26 @@ export default function BlogEditorPage({
         }
         .btn-outline:hover:not(:disabled) { border-color: var(--text-secondary); color: var(--text-primary); }
         .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-outline--active { border-color: #6366f1; color: #6366f1; }
+
+        .editor-scheduler-bar {
+          display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+          background: rgba(99,102,241,0.07); border: 1px solid rgba(99,102,241,0.25);
+          border-radius: var(--radius-md); padding: 0.625rem 1rem;
+          margin-bottom: 1rem;
+        }
+        .editor-scheduler-label { font-size: 0.8125rem; color: #6366f1; white-space: nowrap; }
+        .editor-scheduler-input {
+          padding: 0.3rem 0.6rem; border: 1px solid var(--border);
+          border-radius: var(--radius-sm); background: var(--bg-primary);
+          color: var(--text-primary); font-size: 0.8125rem;
+        }
+        .editor-scheduler-clear {
+          background: none; border: none; color: var(--text-muted);
+          cursor: pointer; font-size: 0.875rem; line-height: 1; padding: 0.1rem 0.3rem;
+        }
+        .editor-scheduler-clear:hover { color: var(--text-primary); }
+        .editor-scheduler-hint { font-size: 0.75rem; color: var(--text-muted); }
 
         .editor-meta-section {
           background: var(--bg-primary); border: 1px solid var(--border);

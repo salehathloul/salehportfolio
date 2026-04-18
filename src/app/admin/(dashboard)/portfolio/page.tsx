@@ -38,6 +38,7 @@ export default async function AdminPortfolioPage() {
       initialWorks={works.map((w) => ({
         ...w,
         dateTaken: w.dateTaken?.toISOString() ?? null,
+        scheduledAt: w.scheduledAt?.toISOString() ?? null,
         images: w.images,
       }))}
       initialCategories={categories}
