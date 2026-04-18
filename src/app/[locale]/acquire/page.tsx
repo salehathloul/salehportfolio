@@ -77,6 +77,26 @@ export default async function AcquirePage() {
         <p className="page-subtitle">{t("subtitle")}</p>
       </div>
 
+      {/* Certificate of Authenticity — moved above steps */}
+      <div className="aq-cert container">
+        <div className="aq-cert-inner">
+          <div className="aq-cert-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="6"/>
+              <path d="M8.56 14.67L7 22l5-3 5 3-1.56-7.34"/>
+            </svg>
+          </div>
+          <div className="aq-cert-text">
+            <h3 className="aq-cert-title">{locale === "ar" ? "شهادة أصالة مُرقَّمة" : "Numbered Certificate of Authenticity"}</h3>
+            <p className="aq-cert-desc">
+              {locale === "ar"
+                ? "كل طبعة محدودة الإصدار تُرفق بشهادة أصالة موقّعة يدوياً من الفنان، تحمل رقم الإصدار من المجموع الكلي، واسم العمل، وتاريخ الطباعة."
+                : "Every limited-edition print comes with a hand-signed certificate of authenticity bearing the edition number, work title, and print date."}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* How It Works */}
       <div className="aq-how container" dir={locale === "ar" ? "rtl" : "ltr"}>
         <div className="aq-how-steps">
@@ -116,26 +136,6 @@ export default async function AcquirePage() {
               <p className="aq-step-desc">{locale === "ar" ? step.arDesc : step.enDesc}</p>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Certificate of Authenticity */}
-      <div className="aq-cert container">
-        <div className="aq-cert-inner">
-          <div className="aq-cert-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="6"/>
-              <path d="M8.56 14.67L7 22l5-3 5 3-1.56-7.34"/>
-            </svg>
-          </div>
-          <div className="aq-cert-text">
-            <h3 className="aq-cert-title">{locale === "ar" ? "شهادة أصالة مُرقَّمة" : "Numbered Certificate of Authenticity"}</h3>
-            <p className="aq-cert-desc">
-              {locale === "ar"
-                ? "كل طبعة محدودة الإصدار تُرفق بشهادة أصالة موقّعة يدوياً من الفنان، تحمل رقم الإصدار من المجموع الكلي، واسم العمل، وتاريخ الطباعة."
-                : "Every limited-edition print comes with a hand-signed certificate of authenticity bearing the edition number, work title, and print date."}
-            </p>
-          </div>
         </div>
       </div>
 
@@ -214,19 +214,23 @@ export default async function AcquirePage() {
 
         @media (max-width: 700px) {
           .aq-how-steps {
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            flex-direction: unset;
           }
           .aq-step {
             border-inline-start: none;
             border-top: 1px solid var(--border-subtle);
-            flex-direction: row;
-            align-items: baseline;
-            gap: 0.75rem;
-            padding: 0.9rem 1.25rem;
+            flex-direction: column;
+            padding: 0.9rem 1rem;
           }
-          .aq-step:first-child { border-top: none; }
-          .aq-step-n { flex-shrink: 0; }
-          .aq-step-desc { display: none; }
+          /* first 2 steps — no top border */
+          .aq-step:first-child,
+          .aq-step:nth-child(2) { border-top: none; }
+          /* left column: add inline separator on desktop */
+          .aq-step:nth-child(odd) {
+            border-inline-end: 1px solid var(--border-subtle);
+          }
         }
 
         /* Certificate */

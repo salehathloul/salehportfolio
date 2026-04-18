@@ -376,14 +376,10 @@ export default async function WorkDetailPage({ params }: Props) {
 
         @media (max-width: 767px) {
           .wd-split {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
           }
-          .wd-col-title { padding-inline-end: 0; }
-          .wd-col-desc {
-            border-top: 1px solid var(--border-subtle);
-            padding-top: 1.5rem;
-          }
+          .wd-col-title { padding-inline-end: 1rem; }
         }
 
         .wd-code {

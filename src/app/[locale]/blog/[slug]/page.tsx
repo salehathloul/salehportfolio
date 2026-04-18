@@ -155,16 +155,6 @@ export default async function BlogPostPage({ params }: Props) {
 
       <article className="bpost-article">
         <div className="bpost-inner container">
-          {/* Back */}
-          <Link href={`/${locale}/blog`} className="bpost-back" dir={dir}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              {locale === "ar"
-                ? <path d="M5 2l4 5-4 5" />  /* AR: points right (back = right in RTL) */
-                : <path d="M9 2L5 7l4 5" />  /* EN: points left */
-              }
-            </svg>
-            {t("title")}
-          </Link>
           <Breadcrumb
             items={[
               { label: locale === "ar" ? "الرئيسية" : "Home", href: `/${locale}` },
@@ -175,10 +165,12 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Header */}
           <header className="bpost-header" dir={dir}>
-            {formattedDate && (
-              <time className="bpost-date">{formattedDate}</time>
-            )}
-            <span className="bpost-reading-time">{readingLabel}</span>
+            <div className="bpost-meta-row">
+              {formattedDate && (
+                <time className="bpost-date">{formattedDate}</time>
+              )}
+              <span className="bpost-reading-time">{readingLabel}</span>
+            </div>
             <h1 className="bpost-title">{title}</h1>
             <div className="bpost-divider" />
             {post.tags && post.tags.length > 0 && (
@@ -254,28 +246,21 @@ export default async function BlogPostPage({ params }: Props) {
           padding-top: 3rem;
         }
 
-        /* Back link */
-        .bpost-back {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.8rem;
-          color: var(--text-muted);
-          margin-bottom: 2.5rem;
-          transition: color var(--transition-fast);
-        }
-
-        .bpost-back:hover { color: var(--text-primary); }
-
         /* Header */
         .bpost-header { margin-bottom: 2.5rem; }
 
+        .bpost-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          margin-bottom: 0.875rem;
+          flex-wrap: wrap;
+        }
+
         .bpost-date {
-          display: block;
           font-size: 0.75rem;
           color: var(--text-subtle);
           letter-spacing: 0.04em;
-          margin-bottom: 0.875rem;
         }
 
         .bpost-reading-time {
@@ -284,11 +269,11 @@ export default async function BlogPostPage({ params }: Props) {
           font-size: 0.72rem;
           color: var(--text-subtle);
           letter-spacing: 0.04em;
-          margin-bottom: 0.875rem;
           gap: 0.35rem;
         }
         .bpost-reading-time::before {
-          content: "◦";
+          content: "·";
+          color: var(--border);
         }
 
         .bpost-title {

@@ -482,7 +482,7 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
         /* Full-width lonely last item */
         .ttr-gallery-item--full {
           grid-column: 1 / -1;
-          aspect-ratio: 16/9;
+          aspect-ratio: 2 / 1;
         }
 
         .ttr-gallery-img {
