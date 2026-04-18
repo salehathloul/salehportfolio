@@ -94,8 +94,12 @@ function GalleryBlock({ images, cols }: { images: GalleryImageEntry[]; cols: num
   const lb = useContext(LightboxContext);
   const resolved = images.map(resolveGallerySrc);
   const count = resolved.length;
-  // Smart layout: if last row has exactly 1 lonely image, make it full-width
-  const lastIsFull = count > cols && count % cols === 1;
+
+  // For 2-column grids with an odd image count:
+  // Put the FIRST image full-width on top, rest fill rows of 2 below.
+  // This avoids the lonely-image-at-bottom imbalance.
+  const firstIsFull = cols === 2 && count % cols === 1;
+
   return (
     <div className="ttr-gallery" style={{ "--gallery-cols": cols } as React.CSSProperties}>
       {resolved.map((img, i) => (
@@ -103,7 +107,7 @@ function GalleryBlock({ images, cols }: { images: GalleryImageEntry[]; cols: num
           key={i}
           entry={img}
           onOpen={() => lb.open(resolved, i)}
-          fullWidth={lastIsFull && i === count - 1}
+          fullWidth={firstIsFull && i === 0}
         />
       ))}
     </div>
@@ -515,8 +519,9 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
           overflow: hidden;
         }
 
+        /* First image full-width in odd-count 2-col grids → 16:9 hero ratio */
         .ttr-gallery-item--full .ttr-gallery-img-box {
-          padding-bottom: 50%; /* 2:1 wide */
+          padding-bottom: 56.25%; /* 16:9 */
         }
 
         .ttr-gallery-img {
