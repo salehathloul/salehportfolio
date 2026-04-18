@@ -22,15 +22,20 @@ function buildSchema(isAr: boolean) {
     category: z.enum(CATEGORIES, {
       error: isAr ? "اختر موضوعاً" : "Select a category",
     }),
-    name: z.string().min(2, isAr ? "الاسم مطلوب" : "Name is required"),
+    name: z.string().min(2, isAr ? "الاسم مطلوب (حرفان على الأقل)" : "Name is required (min 2 chars)"),
     email: z
       .string()
       .min(1, isAr ? "البريد الإلكتروني مطلوب" : "Email is required")
       .email(isAr ? "بريد إلكتروني غير صحيح" : "Invalid email address"),
-    phone: z.string().optional(),
+    phone: z.string().min(7, isAr ? "الجوال مطلوب" : "Phone is required"),
     message: z
       .string()
       .min(10, isAr ? "الرسالة قصيرة جداً (١٠ أحرف كحد أدنى)" : "Message too short (min 10 chars)"),
+    downloadUrl: z
+      .string()
+      .url(isAr ? "الرابط غير صحيح" : "Invalid URL")
+      .optional()
+      .or(z.literal("")),
   });
 }
 
@@ -38,8 +43,9 @@ type FormValues = {
   category: (typeof CATEGORIES)[number];
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   message: string;
+  downloadUrl?: string;
 };
 
 // ── Success screen ─────────────────────────────────────────────────────────────
@@ -178,7 +184,11 @@ export default function ContactForm() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, attachmentUrl }),
+        body: JSON.stringify({
+          ...data,
+          attachmentUrl,
+          downloadUrl: data.downloadUrl || undefined,
+        }),
       });
       if (!res.ok) throw new Error("failed");
       setSubmitted(true);
@@ -229,7 +239,7 @@ export default function ContactForm() {
           <div className="cf-row">
             <div className="cf-field">
               <label className="cf-label" htmlFor="cf-name">
-                {t("name")}
+                {t("name")} <span className="cf-required">*</span>
               </label>
               <input
                 id="cf-name"
@@ -264,16 +274,19 @@ export default function ContactForm() {
           {/* Phone */}
           <div className="cf-field">
             <label className="cf-label" htmlFor="cf-phone">
-              {t("phone")}
+              {t("phone")} <span className="cf-required">*</span>
             </label>
             <input
               id="cf-phone"
-              className="cf-input"
+              className={`cf-input ${errors.phone ? "invalid" : ""}`}
               type="tel"
               autoComplete="tel"
               inputMode="tel"
               {...register("phone")}
             />
+            {errors.phone && (
+              <span className="cf-error">{errors.phone.message}</span>
+            )}
           </div>
 
           {/* Message */}
@@ -289,6 +302,31 @@ export default function ContactForm() {
             />
             {errors.message && (
               <span className="cf-error">{errors.message.message}</span>
+            )}
+          </div>
+
+          {/* Download URL */}
+          <div className="cf-field">
+            <label className="cf-label" htmlFor="cf-download-url">
+              {t("downloadUrl")}
+            </label>
+            <div className="cf-url-wrap">
+              <svg className="cf-url-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              <input
+                id="cf-download-url"
+                className={`cf-input cf-url-input ${errors.downloadUrl ? "invalid" : ""}`}
+                type="url"
+                inputMode="url"
+                placeholder={t("downloadUrlPlaceholder")}
+                dir="ltr"
+                {...register("downloadUrl")}
+              />
+            </div>
+            {errors.downloadUrl && (
+              <span className="cf-error">{errors.downloadUrl.message}</span>
             )}
           </div>
 
@@ -478,6 +516,29 @@ export default function ContactForm() {
 
         @keyframes cf-spin {
           to { transform: rotate(360deg); }
+        }
+
+        /* Required asterisk */
+        .cf-required {
+          color: #dc2626;
+          margin-inline-start: 2px;
+        }
+
+        /* URL input with icon */
+        .cf-url-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .cf-url-icon {
+          position: absolute;
+          inset-inline-start: 0.875rem;
+          color: var(--text-muted);
+          pointer-events: none;
+          flex-shrink: 0;
+        }
+        .cf-url-input {
+          padding-inline-start: 2.25rem;
         }
 
         /* File upload */

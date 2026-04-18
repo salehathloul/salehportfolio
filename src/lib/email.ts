@@ -155,10 +155,11 @@ export async function sendCommissionNotification(data: {
 export async function sendContactNotification(data: {
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   category: string;
   message: string;
   attachmentUrl?: string;
+  downloadUrl?: string;
 }) {
   if (!ADMIN) return;
   const categoryLabels: Record<string, string> = {
@@ -179,8 +180,9 @@ export async function sendContactNotification(data: {
           <tr><td style="padding: 0.5rem 0; color: #555; width: 120px;">التصنيف</td><td>${categoryLabels[data.category] ?? data.category}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555;">الاسم</td><td>${data.name}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555;">البريد</td><td dir="ltr">${data.email}</td></tr>
-          ${data.phone ? `<tr><td style="padding: 0.5rem 0; color: #555;">الجوال</td><td dir="ltr">${data.phone}</td></tr>` : ""}
+          <tr><td style="padding: 0.5rem 0; color: #555;">الجوال</td><td dir="ltr">${data.phone}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">الرسالة</td><td>${data.message}</td></tr>
+          ${data.downloadUrl ? `<tr><td style="padding: 0.5rem 0; color: #555;">رابط تحميل</td><td dir="ltr"><a href="${data.downloadUrl}" target="_blank" style="color: #111;">${data.downloadUrl}</a></td></tr>` : ""}
           ${data.attachmentUrl ? `<tr><td style="padding: 0.5rem 0; color: #555;">المرفق</td><td><a href="${data.attachmentUrl}" target="_blank" style="color: #111;">عرض المرفق</a></td></tr>` : ""}
         </table>
       </div>

@@ -267,15 +267,16 @@ model Order {
 }
 
 model ContactMessage {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String?
-  category  String
-  message   String
-  status        String   @default("new")
-  attachmentUrl String?  // رابط مرفق اختياري (Cloudinary)
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  phone        String
+  category     String
+  message      String
+  status       String   @default("new")
+  attachmentUrl String? // رابط مرفق اختياري (Cloudinary)
+  downloadUrl  String?  // رابط تحميل يشاركه المرسل
+  createdAt    DateTime @default(now())
 }
 
 model FontAsset {

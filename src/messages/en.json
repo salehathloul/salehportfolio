@@ -82,7 +82,7 @@
     "form": {
       "name": "Name",
       "email": "Email",
-      "phone": "Phone (optional)",
+      "phone": "Phone",
       "category": "Subject",
       "message": "Your message",
       "submit": "Send",
@@ -95,7 +95,9 @@
         "acquisition": "Acquisition",
         "media": "Media",
         "other": "Other"
-      }
+      },
+      "downloadUrl": "Download link (optional)",
+      "downloadUrlPlaceholder": "https://drive.google.com/..."
     }
   },
   "errors": {

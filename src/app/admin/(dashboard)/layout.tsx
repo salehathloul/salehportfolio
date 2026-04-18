@@ -46,10 +46,15 @@ export default async function DashboardLayout({
         }
 
         @media (max-width: 768px) {
+          .admin-shell {
+            /* mobile: no flex row — main fills full width */
+            display: block;
+          }
           .admin-main {
             padding: 1rem;
-            /* sidebar becomes a fixed top bar ~54px tall on mobile */
-            padding-top: calc(54px + 1rem);
+            /* clear the fixed 54px top bar */
+            padding-top: calc(54px + 1.25rem);
+            min-height: 100dvh;
           }
         }
       `}</style>

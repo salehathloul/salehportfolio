@@ -82,7 +82,7 @@
     "form": {
       "name": "الاسم",
       "email": "البريد الإلكتروني",
-      "phone": "الجوال (اختياري)",
+      "phone": "الجوال",
       "category": "موضوع التواصل",
       "message": "رسالتك",
       "submit": "إرسال",
@@ -95,7 +95,9 @@
         "acquisition": "اقتناء",
         "media": "إعلام",
         "other": "أخرى"
-      }
+      },
+      "downloadUrl": "رابط تحميل (اختياري)",
+      "downloadUrlPlaceholder": "https://drive.google.com/..."
     }
   },
   "errors": {

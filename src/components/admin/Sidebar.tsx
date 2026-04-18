@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 
 const navItems = [
   {
@@ -124,16 +125,46 @@ const navItems = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close drawer on route change
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
   }
 
+  const activeLabel = navItems.find((item) =>
+    isActive(item.href, item.exact)
+  )?.label ?? "لوحة التحكم";
+
+  const NavLinks = () => (
+    <>
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`nav-item ${isActive(item.href, item.exact) ? "nav-item--active" : ""}`}
+        >
+          <span className="nav-icon">{item.icon}</span>
+          <span className="nav-label">{item.label}</span>
+        </Link>
+      ))}
+    </>
+  );
+
   return (
     <>
-      <aside className="sidebar">
-        {/* Brand */}
+      {/* ── Desktop sidebar ───────────────────────────────────────────── */}
+      <aside className="sidebar sidebar--desktop">
         <div className="sidebar-brand">
           <div className="sidebar-logo">ص</div>
           <div className="sidebar-brand-text">
@@ -142,28 +173,10 @@ export default function AdminSidebar() {
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${isActive(item.href, item.exact) ? "nav-item--active" : ""}`}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
+        <nav className="sidebar-nav"><NavLinks /></nav>
 
-        {/* View site link */}
         <div className="sidebar-divider" />
-        <Link
-          href="/ar"
-          target="_blank"
-          rel="noopener"
-          className="nav-item nav-item--secondary"
-        >
+        <Link href="/ar" target="_blank" rel="noopener" className="nav-item nav-item--secondary">
           <span className="nav-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
@@ -174,24 +187,17 @@ export default function AdminSidebar() {
           <span className="nav-label">عرض الموقع</span>
         </Link>
 
-        {/* User + Logout */}
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <div className="user-avatar">
               {session?.user?.name?.[0] ?? session?.user?.email?.[0] ?? "م"}
             </div>
             <div className="user-info">
-              <span className="user-name">
-                {session?.user?.name ?? "المدير"}
-              </span>
+              <span className="user-name">{session?.user?.name ?? "المدير"}</span>
               <span className="user-email">{session?.user?.email}</span>
             </div>
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
-            className="logout-btn"
-            title="تسجيل الخروج"
-          >
+          <button onClick={() => signOut({ callbackUrl: "/admin/login" })} className="logout-btn" title="تسجيل الخروج">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
               <polyline points="16 17 21 12 16 7" />
@@ -200,6 +206,82 @@ export default function AdminSidebar() {
           </button>
         </div>
       </aside>
+
+      {/* ── Mobile top bar ─────────────────────────────────────────────── */}
+      <div className="mob-topbar">
+        <div className="mob-brand">
+          <div className="sidebar-logo">ص</div>
+          <span className="mob-active-label">{activeLabel}</span>
+        </div>
+        <button
+          className="mob-hamburger"
+          onClick={() => setMobileOpen(true)}
+          aria-label="فتح القائمة"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* ── Mobile drawer overlay ──────────────────────────────────────── */}
+      {mobileOpen && (
+        <div className="mob-overlay" onClick={() => setMobileOpen(false)} />
+      )}
+      <div className={`mob-drawer ${mobileOpen ? "mob-drawer--open" : ""}`} dir="rtl">
+        {/* Drawer header */}
+        <div className="mob-drawer-header">
+          <div className="sidebar-brand" style={{ border: "none", margin: 0, padding: 0 }}>
+            <div className="sidebar-logo">ص</div>
+            <div className="sidebar-brand-text">
+              <span className="sidebar-brand-name">صالح الهذلول</span>
+              <span className="sidebar-brand-role">لوحة التحكم</span>
+            </div>
+          </div>
+          <button className="mob-close" onClick={() => setMobileOpen(false)} aria-label="إغلاق">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M13 3L3 13M3 3l10 10"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Nav links */}
+        <nav className="sidebar-nav mob-drawer-nav"><NavLinks /></nav>
+
+        <div className="sidebar-divider" />
+        <Link href="/ar" target="_blank" rel="noopener" className="nav-item nav-item--secondary">
+          <span className="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </span>
+          <span className="nav-label">عرض الموقع</span>
+        </Link>
+
+        {/* Footer */}
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="user-avatar">
+              {session?.user?.name?.[0] ?? session?.user?.email?.[0] ?? "م"}
+            </div>
+            <div className="user-info">
+              <span className="user-name">{session?.user?.name ?? "المدير"}</span>
+              <span className="user-email">{session?.user?.email}</span>
+            </div>
+          </div>
+          <button onClick={() => signOut({ callbackUrl: "/admin/login" })} className="logout-btn" title="تسجيل الخروج">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
       <style>{`
         .sidebar {
@@ -383,67 +465,129 @@ export default function AdminSidebar() {
           color: var(--text-primary);
         }
 
-        /* Mobile: collapse sidebar into top bar */
+        /* ── Mobile: hide desktop sidebar, show top bar ── */
+        .mob-topbar { display: none; }
+        .mob-overlay { display: none; }
+        .mob-drawer  { display: none; }
+
         @media (max-width: 768px) {
-          .sidebar {
-            width: 100%;
-            min-width: unset;
-            height: auto;
+          /* Hide desktop sidebar entirely */
+          .sidebar--desktop { display: none; }
+
+          /* ── Top bar ── */
+          .mob-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             position: fixed;
-            top: 0;
-            right: 0;
-            left: 0;
-            z-index: 50;
-            flex-direction: row;
-            border-left: none;
+            top: 0; right: 0; left: 0;
+            z-index: 60;
+            height: 54px;
+            padding: 0 1rem;
+            background: var(--bg-primary);
             border-bottom: 1px solid var(--border);
-            padding: 0.5rem 1rem;
-            overflow-x: auto;
-            overflow-y: hidden;
+            direction: rtl;
           }
 
-          .sidebar-brand {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding: 0;
-            padding-left: 1rem;
+          .mob-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
           }
 
-          .sidebar-brand-text {
-            display: none;
+          .mob-active-label {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--text-primary);
           }
 
-          .sidebar-nav {
-            flex-direction: row;
+          .mob-hamburger {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px; height: 36px;
+            border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: background var(--transition-fast);
+          }
+          .mob-hamburger:hover { background: var(--bg-secondary); }
+
+          /* ── Overlay ── */
+          .mob-overlay {
+            display: block;
+            position: fixed; inset: 0;
+            z-index: 70;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(2px);
+          }
+
+          /* ── Drawer ── */
+          .mob-drawer {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; right: 0;
+            width: min(280px, 85vw);
+            height: 100dvh;
+            z-index: 80;
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border);
+            transform: translateX(100%);
+            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+            overflow-y: auto;
+            padding: 1.25rem 0;
+          }
+
+          .mob-drawer--open {
+            transform: translateX(0);
+          }
+
+          .mob-drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem 1.25rem;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 0.5rem;
+          }
+
+          .mob-close {
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            border: none; background: transparent;
+            color: var(--text-muted); cursor: pointer;
+            border-radius: 50%;
+            transition: background var(--transition-fast);
+          }
+          .mob-close:hover { background: var(--bg-secondary); }
+
+          .mob-drawer-nav {
+            flex-direction: column;
             gap: 2px;
-            padding: 0;
+            padding: 0 0.75rem;
             flex: 1;
           }
 
-          .nav-item {
-            flex-direction: column;
-            gap: 0.25rem;
-            padding: 0.375rem 0.5rem;
-            font-size: 0.6875rem;
+          /* nav-item inside drawer: full row with label */
+          .mob-drawer .nav-item {
+            flex-direction: row;
+            gap: 0.625rem;
+            padding: 0.625rem 0.75rem;
+            font-size: 0.9rem;
           }
 
-          .nav-label {
-            display: none;
-          }
+          .mob-drawer .nav-label { display: block; }
+          .mob-drawer .sidebar-divider { display: block; }
 
-          .sidebar-divider {
-            display: none;
+          .mob-drawer .sidebar-footer {
+            margin-top: 0.5rem;
+            padding: 0.75rem 1.25rem 0;
+            border-top: 1px solid var(--border-subtle);
           }
-
-          .sidebar-footer {
-            border-top: none;
-            padding: 0;
-            margin: 0;
-          }
-
-          .user-info { display: none; }
-          .user-avatar { display: none; }
-          .sidebar-user { display: none; }
+          .mob-drawer .user-info { display: flex; }
+          .mob-drawer .user-avatar { display: flex; }
+          .mob-drawer .sidebar-user { display: flex; }
         }
       `}</style>
     </>
