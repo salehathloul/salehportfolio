@@ -20,6 +20,11 @@ export default async function DashboardLayout({
     redirect("/admin/login");
   }
 
+  // Only admins may access the dashboard
+  if (session.user.role !== "admin") {
+    redirect("/admin/login?error=AccessDenied");
+  }
+
   return (
     <AdminSessionProvider session={session}>
       <div className="admin-shell">
@@ -43,6 +48,8 @@ export default async function DashboardLayout({
         @media (max-width: 768px) {
           .admin-main {
             padding: 1rem;
+            /* sidebar becomes a fixed top bar ~54px tall on mobile */
+            padding-top: calc(54px + 1rem);
           }
         }
       `}</style>

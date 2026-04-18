@@ -489,6 +489,35 @@ export default function Header({ settings }: HeaderProps) {
           .hamburger {
             display: flex;
           }
+
+          /* Tighten controls row on small screens */
+          .header-controls {
+            gap: 0;
+          }
+
+          /* Prevent visitor dropdown from going off-screen */
+          .visitor-dropdown {
+            position: fixed;
+            top: 64px;
+            inset-inline-end: 0.75rem;
+            inset-inline-start: unset;
+            left: unset;
+            right: 0.75rem;
+            max-width: calc(100vw - 1.5rem);
+          }
+
+          /* Keep login button a reasonable tap target */
+          .visitor-login-btn {
+            width: 32px;
+            height: 32px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          /* On very small phones hide the search icon to prevent overflow */
+          .header-icon-btn {
+            display: none;
+          }
         }
 
         /* ── Generic header icon button (search, etc.) ── */

@@ -10,6 +10,7 @@ import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
 import { VisitorProvider } from "@/components/auth/VisitorContext";
+import PublicSessionProvider from "@/components/layout/PublicSessionProvider";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://saleh-portfolio.vercel.app";
@@ -339,6 +340,7 @@ export default async function LocaleLayout({
         <script dangerouslySetInnerHTML={{ __html: analyticsScripts }} />
       )}
 
+      <PublicSessionProvider>
       <LocaleProvider locale={locale} settings={settings}>
         <VisitorProvider>
         <ToastProvider>
@@ -352,6 +354,7 @@ export default async function LocaleLayout({
         </ToastProvider>
         </VisitorProvider>
       </LocaleProvider>
+      </PublicSessionProvider>
 
       <style>{`
         .site-layout {
