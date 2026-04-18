@@ -60,12 +60,41 @@ function applyMarks(text: string, marks?: Mark[]): React.ReactNode {
 
 // ── Gallery image card ────────────────────────────────────────────────────────
 
-function GalleryImageCard({ entry, onOpen, fullWidth }: { entry: GalleryImageEntry; onOpen: () => void; fullWidth?: boolean }) {
+function GalleryImageCard({
+  entry,
+  onOpen,
+  spanFull,
+}: {
+  entry: GalleryImageEntry;
+  onOpen: () => void;
+  spanFull?: boolean;
+}) {
   const { src, alt } = resolveGallerySrc(entry);
   if (!src) return null;
+
+  const itemStyle: React.CSSProperties = spanFull
+    ? { gridColumn: "1 / -1" }
+    : {};
+
+  // padding-bottom percentage = (1/ratio)*100
+  // spanFull → 16:9 (56.25%)  |  normal → 1:1 (100%)
+  const boxStyle: React.CSSProperties = {
+    position: "relative",
+    width: "100%",
+    paddingBottom: spanFull ? "56.25%" : "100%",
+    overflow: "hidden",
+  };
+
   return (
-    <div className={`ttr-gallery-item${fullWidth ? " ttr-gallery-item--full" : ""}`} onClick={onOpen} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && onOpen()}>
-      <div className="ttr-gallery-img-box">
+    <div
+      className="ttr-gallery-item"
+      style={itemStyle}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onOpen()}
+    >
+      <div style={boxStyle}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} className="ttr-gallery-img" loading="lazy" />
       </div>
@@ -95,19 +124,27 @@ function GalleryBlock({ images, cols }: { images: GalleryImageEntry[]; cols: num
   const resolved = images.map(resolveGallerySrc);
   const count = resolved.length;
 
-  // For 2-column grids with an odd image count:
-  // Put the FIRST image full-width on top, rest fill rows of 2 below.
-  // This avoids the lonely-image-at-bottom imbalance.
-  const firstIsFull = cols === 2 && count % cols === 1;
+  // When the image count leaves a lone remainder (e.g. 3 images, 2 cols → 1 lone image),
+  // elevate the FIRST image to full-width hero so the rest fill complete rows.
+  // Works for any column count: cols=2 with 3/5/7 images, cols=3 with 4/7 images, etc.
+  const hasLoneRemainder = count > cols && count % cols === 1;
+
+  const gridStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    gap: "4px",
+    margin: "2.5rem 0",
+    width: "100%",
+  };
 
   return (
-    <div className="ttr-gallery" style={{ "--gallery-cols": cols } as React.CSSProperties}>
+    <div style={gridStyle}>
       {resolved.map((img, i) => (
         <GalleryImageCard
           key={i}
           entry={img}
           onOpen={() => lb.open(resolved, i)}
-          fullWidth={firstIsFull && i === 0}
+          spanFull={hasLoneRemainder && i === 0}
         />
       ))}
     </div>
@@ -488,40 +525,13 @@ export default function TipTapRenderer({ content, dir = "ltr" }: Props) {
         }
 
         /* ── Gallery ── */
-        .ttr-gallery {
-          display: grid;
-          grid-template-columns: repeat(var(--gallery-cols, 2), 1fr);
-          gap: 4px;
-          margin: 2.5rem 0;
-          width: 100%;
-        }
-
-        @media (max-width: 480px) {
-          .ttr-gallery { grid-template-columns: repeat(2, 1fr); }
-        }
+        /* Layout is handled entirely via inline styles on the container and items.
+           Only shared/hover styles live here. */
 
         .ttr-gallery-item {
           overflow: hidden;
           cursor: pointer;
           background: var(--bg-secondary);
-        }
-
-        /* Full-width lonely last item */
-        .ttr-gallery-item--full {
-          grid-column: 1 / -1;
-        }
-
-        /* Padding-bottom trick for reliable fixed aspect ratio */
-        .ttr-gallery-img-box {
-          position: relative;
-          width: 100%;
-          padding-bottom: 100%; /* 1:1 square */
-          overflow: hidden;
-        }
-
-        /* First image full-width in odd-count 2-col grids → 16:9 hero ratio */
-        .ttr-gallery-item--full .ttr-gallery-img-box {
-          padding-bottom: 56.25%; /* 16:9 */
         }
 
         .ttr-gallery-img {
