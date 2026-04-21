@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import TipTapRenderer from "@/components/blog/TipTapRenderer";
 import CommentsSection from "@/components/blog/CommentsSection";
+import LikeButton from "@/components/blog/LikeButton";
 import RelatedPosts from "@/components/blog/RelatedPosts";
 import NewsletterForm from "@/components/newsletter/NewsletterForm";
 import Breadcrumb from "@/components/ui/Breadcrumb";
@@ -198,6 +199,9 @@ export default async function BlogPostPage({ params }: Props) {
               <p className="bpost-signature" dir={dir}>{sigText}</p>
             )}
           </div>
+
+          {/* Like */}
+          <LikeButton slug={post.slug} initialCount={post.likesCount} locale={locale as "ar" | "en"} />
 
           {/* Comments */}
           <CommentsSection postId={post.id} locale={locale as "ar" | "en"} />

@@ -177,9 +177,11 @@ model BlogPost {
   publishedAt       DateTime?
   scheduledAt       DateTime?    // وقت النشر التلقائي المجدوَل
   signatureDisabled Boolean       @default(false)
+  likesCount        Int           @default(0)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   comments          BlogComment[]
+  likes             BlogLike[]
   tags              BlogTag[]     @relation("PostTags")
 }
 
@@ -201,8 +203,18 @@ model BlogComment {
   email     String
   phone     String?
   content   String
-  isHidden  Boolean  @default(false)
+  status    String   @default("pending") // pending | approved | rejected
   createdAt DateTime @default(now())
+}
+
+model BlogLike {
+  id        String   @id @default(cuid())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  visitorId String   // from localStorage
+  createdAt DateTime @default(now())
+
+  @@unique([postId, visitorId])
 }
 
 model Visitor {

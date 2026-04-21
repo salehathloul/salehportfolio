@@ -11,9 +11,14 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const postId = req.nextUrl.searchParams.get("postId");
+  const statusFilter = req.nextUrl.searchParams.get("status"); // pending | approved | rejected | all
+
+  const where: Record<string, unknown> = {};
+  if (postId) where.postId = postId;
+  if (statusFilter && statusFilter !== "all") where.status = statusFilter;
 
   const comments = await db.blogComment.findMany({
-    where: postId ? { postId } : undefined,
+    where,
     include: {
       post: { select: { id: true, titleAr: true, slug: true } },
     },

@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useVisitor } from "@/components/auth/VisitorContext";
-import LoginModal from "@/components/auth/LoginModal";
 
 interface Comment {
   id: string;
@@ -16,19 +14,19 @@ interface Props {
   locale: "ar" | "en";
 }
 
+const STORAGE_KEY = "comment_author";
+
 const T = {
   ar: {
     title: "التعليقات",
     noComments: "لا توجد تعليقات بعد — كن أول من يعلّق.",
-    loginPrompt: "سجّل دخولك للتعليق",
-    loginBtn: "دخول",
     namePlaceholder: "اسمك *",
     emailPlaceholder: "بريدك الإلكتروني *",
-    phonePlaceholder: "جوالك (اختياري)",
     contentPlaceholder: "اكتب تعليقك...",
+    rememberMe: "تذكّرني",
     submit: "إرسال التعليق",
     submitting: "جاري الإرسال...",
-    successMsg: "تم إرسال تعليقك بنجاح.",
+    successMsg: "تم إرسال تعليقك وسيظهر بعد المراجعة.",
     errorMsg: "فشل إرسال التعليق. حاول مرة أخرى.",
     formTitle: "أضف تعليقاً",
     ago: (d: Date) => {
@@ -42,15 +40,13 @@ const T = {
   en: {
     title: "Comments",
     noComments: "No comments yet — be the first to comment.",
-    loginPrompt: "Sign in to leave a comment",
-    loginBtn: "Sign in",
     namePlaceholder: "Your name *",
     emailPlaceholder: "Your email *",
-    phonePlaceholder: "Your phone (optional)",
     contentPlaceholder: "Write your comment...",
+    rememberMe: "Remember me",
     submit: "Post Comment",
     submitting: "Submitting...",
-    successMsg: "Your comment was submitted successfully.",
+    successMsg: "Comment submitted and will appear after review.",
     errorMsg: "Failed to submit. Please try again.",
     formTitle: "Leave a Comment",
     ago: (d: Date) => {
@@ -66,16 +62,30 @@ const T = {
 export default function CommentsSection({ postId, locale }: Props) {
   const t = T[locale];
   const dir = locale === "ar" ? "rtl" : "ltr";
-  const { visitor } = useVisitor();
-  const [showLogin, setShowLogin] = useState(false);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  // Load saved author from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const { name: n, email: e } = JSON.parse(saved);
+        if (n) setName(n);
+        if (e) setEmail(e);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     fetch(`/api/comments?postId=${postId}`)
@@ -92,22 +102,21 @@ export default function CommentsSection({ postId, locale }: Props) {
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          postId,
-          name: visitor?.name,
-          email: visitor?.email,
-          content,
-        }),
+        body: JSON.stringify({ postId, name, email, content }),
       });
       if (!res.ok) {
         const err = await res.json();
         setError(err.error ?? t.errorMsg);
       } else {
-        const newComment: Comment = await res.json();
-        setComments((prev) => [...prev, newComment]);
+        // Save author to localStorage if rememberMe is checked
+        if (rememberMe) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, email }));
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
         setContent("");
         setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 4000);
+        setTimeout(() => setSubmitted(false), 5000);
       }
     } catch {
       setError(t.errorMsg);
@@ -145,14 +154,33 @@ export default function CommentsSection({ postId, locale }: Props) {
         </div>
       )}
 
-      {/* Comment form / login prompt */}
-      {visitor ? (
-        <div className="cs-form-wrap">
-          <div className="cs-visitor-row">
-            <div className="cs-visitor-avatar">{visitor.name.charAt(0).toUpperCase()}</div>
-            <span className="cs-visitor-name">{visitor.name}</span>
-          </div>
+      {/* Comment form */}
+      <div className="cs-form-wrap">
+        <p className="cs-form-title">{t.formTitle}</p>
+        {submitted ? (
+          <p className="cs-success">{t.successMsg}</p>
+        ) : (
           <form onSubmit={handleSubmit} className="cs-form">
+            <div className="cs-fields-row">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t.namePlaceholder}
+                required
+                className="cs-input"
+                dir={dir}
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t.emailPlaceholder}
+                required
+                className="cs-input"
+                dir="ltr"
+              />
+            </div>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -162,25 +190,26 @@ export default function CommentsSection({ postId, locale }: Props) {
               className="cs-textarea"
               dir={dir}
             />
-            {error && <p className="cs-error">{error}</p>}
-            {submitted && <p className="cs-success">{t.successMsg}</p>}
-            <button type="submit" disabled={submitting} className="cs-submit">
-              {submitting ? t.submitting : t.submit}
-            </button>
+            <div className="cs-footer-row">
+              <label className="cs-remember">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="cs-checkbox"
+                />
+                <span>{t.rememberMe}</span>
+              </label>
+              <div className="cs-form-actions">
+                {error && <p className="cs-error">{error}</p>}
+                <button type="submit" disabled={submitting} className="cs-submit">
+                  {submitting ? t.submitting : t.submit}
+                </button>
+              </div>
+            </div>
           </form>
-        </div>
-      ) : (
-        <div className="cs-login-prompt">
-          <p className="cs-login-text">{t.loginPrompt}</p>
-          <button className="cs-login-btn" onClick={() => setShowLogin(true)}>
-            {t.loginBtn}
-          </button>
-        </div>
-      )}
-
-      {showLogin && (
-        <LoginModal onClose={() => setShowLogin(false)} locale={locale} source="blog" />
-      )}
+        )}
+      </div>
 
       <style>{`
         .cs-section {
@@ -290,71 +319,6 @@ export default function CommentsSection({ postId, locale }: Props) {
           margin: 0;
         }
 
-        /* Visitor row (logged-in user header) */
-        .cs-visitor-row {
-          display: flex;
-          align-items: center;
-          gap: 0.625rem;
-          margin-bottom: 0.875rem;
-        }
-
-        .cs-visitor-avatar {
-          width: 32px;
-          height: 32px;
-          flex-shrink: 0;
-          border-radius: 50%;
-          background: var(--text-primary);
-          color: var(--bg-primary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          user-select: none;
-        }
-
-        .cs-visitor-name {
-          font-size: 0.9rem;
-          font-weight: 500;
-          color: var(--text-primary);
-        }
-
-        /* Login prompt */
-        .cs-login-prompt {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.25rem 1.5rem;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-        }
-
-        .cs-login-text {
-          flex: 1;
-          font-size: 0.9rem;
-          color: var(--text-secondary);
-          margin: 0;
-        }
-
-        .cs-login-btn {
-          flex-shrink: 0;
-          height: 34px;
-          padding: 0 1.125rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 0.8125rem;
-          cursor: pointer;
-          transition: border-color var(--transition-fast), color var(--transition-fast);
-          white-space: nowrap;
-        }
-        .cs-login-btn:hover {
-          border-color: var(--text-secondary);
-          color: var(--text-primary);
-        }
-
         /* Form */
         .cs-form-wrap {
           background: var(--bg-secondary);
@@ -371,6 +335,15 @@ export default function CommentsSection({ postId, locale }: Props) {
         }
 
         .cs-form { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .cs-fields-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
+        }
+        @media (max-width: 600px) {
+          .cs-fields-row { grid-template-columns: 1fr; }
+        }
 
         .cs-input, .cs-textarea {
           width: 100%;
@@ -390,6 +363,38 @@ export default function CommentsSection({ postId, locale }: Props) {
 
         .cs-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
+        .cs-footer-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .cs-remember {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.8125rem;
+          color: var(--text-muted);
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .cs-checkbox {
+          width: 14px;
+          height: 14px;
+          accent-color: var(--text-primary);
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        .cs-form-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
         .cs-error {
           font-size: 0.85rem;
           color: #e53e3e;
@@ -397,13 +402,14 @@ export default function CommentsSection({ postId, locale }: Props) {
         }
 
         .cs-success {
-          font-size: 0.85rem;
+          font-size: 0.875rem;
           color: #10b981;
           margin: 0;
+          padding: 0.75rem 0;
         }
 
         .cs-submit {
-          align-self: flex-start;
+          flex-shrink: 0;
           padding: 0.6rem 1.5rem;
           background: var(--text-primary);
           color: var(--bg-primary);
@@ -413,6 +419,7 @@ export default function CommentsSection({ postId, locale }: Props) {
           font-weight: 500;
           cursor: pointer;
           transition: opacity var(--transition-fast);
+          white-space: nowrap;
         }
         .cs-submit:hover:not(:disabled) { opacity: 0.85; }
         .cs-submit:disabled { opacity: 0.5; cursor: not-allowed; }

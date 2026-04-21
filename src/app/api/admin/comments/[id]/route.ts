@@ -6,18 +6,23 @@ import { db } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
-// ── PATCH /api/admin/comments/[id] — toggle hide ──────────────────────────────
+// ── PATCH /api/admin/comments/[id] — update status ───────────────────────────
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const { isHidden } = await req.json();
+  const body = await req.json();
+
+  const validStatuses = ["pending", "approved", "rejected"];
+  if (!body.status || !validStatuses.includes(body.status)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
 
   const comment = await db.blogComment.update({
     where: { id },
-    data: { isHidden: Boolean(isHidden) },
+    data: { status: body.status },
   });
 
   return NextResponse.json(comment);
