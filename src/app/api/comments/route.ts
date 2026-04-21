@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { sendNewCommentNotification } from "@/lib/email";
 
 // ── GET /api/comments?postId=xxx — list approved comments for a post ──────────
 
@@ -31,7 +32,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   }
 
-  const post = await db.blogPost.findUnique({ where: { id: postId }, select: { status: true } });
+  const post = await db.blogPost.findUnique({
+    where: { id: postId },
+    select: { status: true, titleAr: true, titleEn: true, slug: true },
+  });
   if (!post || post.status !== "published") {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
@@ -43,9 +47,18 @@ export async function POST(req: NextRequest) {
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || null,
       content: content.trim(),
-      status: "pending",
+      status: "approved",
     },
   });
+
+  // إشعار إيميل للمالك — fire-and-forget
+  sendNewCommentNotification({
+    postTitleAr: post.titleAr,
+    postSlug: post.slug,
+    commenterName: name.trim(),
+    commenterEmail: email.trim(),
+    content: content.trim(),
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

@@ -150,6 +150,43 @@ export async function sendCommissionNotification(data: {
   });
 }
 
+// ── Comment: notify owner ────────────────────────────────────────────────────
+
+export async function sendNewCommentNotification(data: {
+  postTitleAr: string;
+  postSlug: string;
+  commenterName: string;
+  commenterEmail: string;
+  content: string;
+}) {
+  if (!ADMIN) return;
+  const siteUrl = process.env.NEXTAUTH_URL ?? "https://salehalhuthloul.com";
+  const postUrl = `${siteUrl}/ar/blog/${data.postSlug}`;
+  const adminUrl = `${siteUrl}/admin/comments`;
+
+  return getResend().emails.send({
+    from: FROM,
+    to: ADMIN,
+    subject: `تعليق جديد — ${data.postTitleAr}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+        <h2 style="border-bottom: 2px solid #111; padding-bottom: 0.5rem;">تعليق جديد على المدونة</h2>
+        <table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+          <tr><td style="padding: 0.5rem 0; color: #555; width: 120px;">التدوينة</td><td><a href="${postUrl}" style="color:#111;">${data.postTitleAr}</a></td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">الاسم</td><td>${data.commenterName}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">البريد</td><td dir="ltr">${data.commenterEmail}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">التعليق</td><td style="white-space: pre-wrap;">${data.content}</td></tr>
+        </table>
+        <p style="margin-top: 1.5rem;">
+          <a href="${adminUrl}" style="background:#111; color:#fff; padding: 0.5rem 1.25rem; border-radius: 6px; text-decoration: none; font-size: 0.875rem;">
+            عرض التعليقات في لوحة التحكم
+          </a>
+        </p>
+      </div>
+    `,
+  });
+}
+
 // ── Contact: notify owner ────────────────────────────────────────────────────
 
 export async function sendContactNotification(data: {
