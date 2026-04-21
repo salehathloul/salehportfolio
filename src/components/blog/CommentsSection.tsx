@@ -26,7 +26,7 @@ const T = {
     rememberMe: "تذكّرني",
     submit: "إرسال التعليق",
     submitting: "جاري الإرسال...",
-    successMsg: "تم إرسال تعليقك وسيظهر بعد المراجعة.",
+    successMsg: "تم إرسال تعليقك.",
     errorMsg: "فشل إرسال التعليق. حاول مرة أخرى.",
     formTitle: "أضف تعليقاً",
     ago: (d: Date) => {
@@ -46,7 +46,7 @@ const T = {
     rememberMe: "Remember me",
     submit: "Post Comment",
     submitting: "Submitting...",
-    successMsg: "Comment submitted and will appear after review.",
+    successMsg: "Comment posted.",
     errorMsg: "Failed to submit. Please try again.",
     formTitle: "Leave a Comment",
     ago: (d: Date) => {
@@ -114,9 +114,17 @@ export default function CommentsSection({ postId, locale }: Props) {
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
+        // أضف التعليق فوراً على الشاشة
+        const newComment: Comment = {
+          id: `temp-${Date.now()}`,
+          name: name.trim(),
+          content: content.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        setComments((prev) => [...prev, newComment]);
         setContent("");
         setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 5000);
+        setTimeout(() => setSubmitted(false), 3000);
       }
     } catch {
       setError(t.errorMsg);
