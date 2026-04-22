@@ -10,7 +10,6 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SearchOverlay from "./SearchOverlay";
 import { useVisitor } from "@/components/auth/VisitorContext";
-import LoginModal from "@/components/auth/LoginModal";
 
 interface SiteSettings {
   logoLight?: string | null;
@@ -50,7 +49,6 @@ export default function Header({ settings }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { visitor, logout } = useVisitor();
@@ -182,45 +180,6 @@ export default function Header({ settings }: HeaderProps) {
             <LanguageSwitcher />
             <ThemeToggle />
 
-            {/* Visitor login / avatar */}
-            {visitor ? (
-              <div className="visitor-menu-wrap">
-                <button
-                  className="visitor-avatar"
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  title={visitor.name}
-                >
-                  {visitor.name.charAt(0).toUpperCase()}
-                </button>
-                {showUserMenu && (
-                  <>
-                    <div className="visitor-dropdown">
-                      <p className="visitor-dropdown-name">{visitor.name}</p>
-                      <p className="visitor-dropdown-email">{visitor.email}</p>
-                      <button
-                        className="visitor-dropdown-logout"
-                        onClick={async () => { await logout(); setShowUserMenu(false); }}
-                      >
-                        {locale === "ar" ? "تسجيل الخروج" : "Sign out"}
-                      </button>
-                    </div>
-                    <div className="visitor-dropdown-overlay" onClick={() => setShowUserMenu(false)} />
-                  </>
-                )}
-              </div>
-            ) : (
-              <button
-                className="visitor-login-btn"
-                onClick={() => setShowLogin(true)}
-                title={locale === "ar" ? "دخول" : "Sign in"}
-                aria-label={locale === "ar" ? "دخول" : "Sign in"}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-                </svg>
-              </button>
-            )}
 
             {/* Mobile hamburger */}
             <button
@@ -301,15 +260,6 @@ export default function Header({ settings }: HeaderProps) {
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
       />
-
-      {/* Login modal */}
-      {showLogin && (
-        <LoginModal
-          onClose={() => setShowLogin(false)}
-          locale={locale}
-          source="nav"
-        />
-      )}
 
       <style>{`
         .site-header {

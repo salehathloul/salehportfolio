@@ -153,8 +153,20 @@ model Work {
   scheduledAt   DateTime?    // وقت النشر التلقائي المجدوَل (null = غير مجدول)
   acquireItem   AcquireItem?
   images        WorkImage[]
+  likesCount    Int          @default(0)
+  likes         WorkLike[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+}
+
+model WorkLike {
+  id        String   @id @default(cuid())
+  work      Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  workId    String
+  visitorId String
+  createdAt DateTime @default(now())
+
+  @@unique([workId, visitorId])
 }
 
 model WorkImage {

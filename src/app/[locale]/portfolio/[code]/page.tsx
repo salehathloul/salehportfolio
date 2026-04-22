@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import WorkGallery from "@/components/portfolio/WorkGallery";
 import ShareButtons from "@/components/blog/ShareButtons";
+import WorkLikeButton from "@/components/portfolio/WorkLikeButton";
 import RelatedWorks from "@/components/portfolio/RelatedWorks";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 
@@ -261,10 +262,17 @@ export default async function WorkDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Share */}
+            {/* Like + Share */}
             <div className="wd-share">
               <span className="wd-section-title">{locale === "ar" ? "مشاركة" : "Share"}</span>
-              <ShareButtons url={pageUrl} title={title ?? ""} locale={locale as "ar" | "en"} />
+              <div className="wd-social-row">
+                <WorkLikeButton
+                  code={work.code}
+                  initialCount={work.likesCount}
+                  locale={locale as "ar" | "en"}
+                />
+                <ShareButtons url={pageUrl} title={title ?? ""} locale={locale as "ar" | "en"} />
+              </div>
             </div>
           </div>
 
@@ -503,6 +511,12 @@ export default async function WorkDetailPage({ params }: Props) {
         }
 
         .wd-share { flex-shrink: 0; }
+        .wd-social-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
 
         @media (max-width: 640px) {
           .wd-footer-row { gap: 1.5rem; }
