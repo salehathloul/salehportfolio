@@ -82,8 +82,20 @@ export default function ImageUploader({
 
     setState({ status: "uploading", file, dataUrl, progress: 0 });
 
+    // Vercel serverless functions have a ~4.5 MB body limit.
+    // Compress client-side if the file is too large before sending.
+    let uploadFile = file;
+    if (file.size > 3.5 * 1024 * 1024) {
+      try {
+        uploadFile = await compressImage(file, 3.2 * 1024 * 1024);
+      } catch {
+        // If compression fails for any reason, try sending as-is
+        // (will likely 413, but the error will be shown clearly)
+      }
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", uploadFile);
     formData.append("folder", folder);
 
     try {
@@ -182,7 +194,7 @@ export default function ImageUploader({
             {aspectHint && (
               <span className="uploader-aspect-hint">نسبة مقترحة: {aspectHint}</span>
             )}
-            <span className="uploader-formats">JPG · PNG · WebP · حتى 30MB</span>
+            <span className="uploader-formats">JPG · PNG · WebP · حتى 30MB (يتم الضغط تلقائياً)</span>
           </div>
         )}
 
@@ -523,6 +535,72 @@ async function uploadWithProgress(
 
     xhr.open("POST", "/api/upload");
     xhr.send(formData);
+  });
+}
+
+/**
+ * Compress an image file client-side using Canvas to stay under Vercel's
+ * 4.5 MB serverless-function body limit.
+ *
+ * Strategy:
+ *  1. Draw the image onto a canvas at full resolution.
+ *  2. Try toBlob() at progressively lower JPEG quality (0.92 → 0.5).
+ *  3. If still too large, halve the canvas dimensions and retry.
+ *  4. Return a new File with the original name but .jpg extension.
+ */
+async function compressImage(file: File, maxBytes: number): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = document.createElement("img");
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+
+      // Use naturalWidth/naturalHeight — img.width/height are 0 outside the DOM
+      const width  = img.naturalWidth  || img.width;
+      const height = img.naturalHeight || img.height;
+      const tryCompress = (quality: number, scale: number) => {
+        canvas.width  = Math.round(width  * scale);
+        canvas.height = Math.round(height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas not supported")); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error("Canvas toBlob failed")); return; }
+
+            if (blob.size <= maxBytes) {
+              // Success — wrap in a File
+              const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+              resolve(new File([blob], name, { type: "image/jpeg" }));
+            } else if (quality > 0.5) {
+              // Try lower quality at the same scale
+              tryCompress(Math.max(quality - 0.1, 0.5), scale);
+            } else if (scale > 0.25) {
+              // Still too large — shrink dimensions
+              tryCompress(0.82, scale * 0.75);
+            } else {
+              // Give up compressing; send whatever we have
+              const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+              resolve(new File([blob], name, { type: "image/jpeg" }));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      tryCompress(0.92, 1);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image for compression"));
+    };
+
+    img.src = objectUrl;
   });
 }
 

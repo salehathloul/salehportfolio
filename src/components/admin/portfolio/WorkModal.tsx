@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import ImageUploader, { type UploadedImage } from "@/components/admin/ImageUploader";
+import TranslateButton from "@/components/admin/TranslateButton";
 import type { Category } from "./types";
 
 // ─── Schema ───────────────────────────────────────────────
@@ -342,7 +343,18 @@ export default function WorkModal({
                 <Field label="الاسم — عربي" error={errors.titleAr?.message} required>
                   <input {...register("titleAr")} placeholder="اسم العمل بالعربية" dir="rtl" className="inp" />
                 </Field>
-                <Field label="الاسم — English" error={errors.titleEn?.message} required>
+                <Field
+                  label="الاسم — English"
+                  error={errors.titleEn?.message}
+                  required
+                  action={
+                    <TranslateButton
+                      text={watch("titleAr") ?? ""}
+                      from="ar" to="en"
+                      onResult={(t) => setValue("titleEn", t, { shouldValidate: true })}
+                    />
+                  }
+                >
                   <input {...register("titleEn")} placeholder="Work title in English" dir="ltr" className="inp" />
                 </Field>
               </div>
@@ -354,7 +366,17 @@ export default function WorkModal({
                 <Field label="الموقع — عربي" error={errors.locationAr?.message}>
                   <input {...register("locationAr")} placeholder="المدينة، البلد" dir="rtl" className="inp" />
                 </Field>
-                <Field label="الموقع — English" error={errors.locationEn?.message}>
+                <Field
+                  label="الموقع — English"
+                  error={errors.locationEn?.message}
+                  action={
+                    <TranslateButton
+                      text={watch("locationAr") ?? ""}
+                      from="ar" to="en"
+                      onResult={(t) => setValue("locationEn", t, { shouldValidate: true })}
+                    />
+                  }
+                >
                   <input {...register("locationEn")} placeholder="City, Country" dir="ltr" className="inp" />
                 </Field>
               </div>
@@ -410,7 +432,17 @@ export default function WorkModal({
                 <Field label="الوصف — عربي" error={errors.descriptionAr?.message}>
                   <textarea {...register("descriptionAr")} rows={4} placeholder="وصف العمل..." dir="rtl" className="inp inp--area" />
                 </Field>
-                <Field label="الوصف — English" error={errors.descriptionEn?.message}>
+                <Field
+                  label="الوصف — English"
+                  error={errors.descriptionEn?.message}
+                  action={
+                    <TranslateButton
+                      text={watch("descriptionAr") ?? ""}
+                      from="ar" to="en"
+                      onResult={(t) => setValue("descriptionEn", t, { shouldValidate: true })}
+                    />
+                  }
+                >
                   <textarea {...register("descriptionEn")} rows={4} placeholder="Work description..." dir="ltr" className="inp inp--area" />
                 </Field>
               </div>
@@ -499,11 +531,14 @@ function FormSection({ title, children }: { title: string; children: React.React
 }
 
 function Field({
-  label, error, required, hint, children,
-}: { label: string; error?: string; required?: boolean; hint?: string; children: React.ReactNode }) {
+  label, error, required, hint, action, children,
+}: { label: string; error?: string; required?: boolean; hint?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="field">
-      <label className="field-label">{label}{required && <span className="required">*</span>}</label>
+      <div className="field-label-row">
+        <label className="field-label">{label}{required && <span className="required">*</span>}</label>
+        {action && <span className="field-action">{action}</span>}
+      </div>
       {hint && <p className="field-hint">{hint}</p>}
       {children}
       {error && <FieldError>{error}</FieldError>}
@@ -639,10 +674,23 @@ function ModalStyles() {
         gap: 0.3rem;
       }
 
+      .field-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.35rem;
+      }
+
       .field-label {
         font-size: 0.8125rem;
         font-weight: 500;
         color: var(--text-secondary);
+        margin-bottom: 0; /* row handles spacing */
+      }
+
+      .field-action {
+        flex-shrink: 0;
       }
 
       .required {
