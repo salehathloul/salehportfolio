@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Allow up to 60s for large uploads (Vercel Pro / edge)
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -71,6 +72,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[upload] Cloudinary error:", err);
-    return NextResponse.json({ error: "فشل رفع الصورة" }, { status: 500 });
+    // Surface the real error message so we can diagnose it
+    const msg =
+      err instanceof Error
+        ? err.message
+        : typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message: unknown }).message)
+          : String(err);
+    return NextResponse.json({ error: `فشل رفع الصورة: ${msg}` }, { status: 500 });
   }
 }

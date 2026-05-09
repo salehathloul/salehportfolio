@@ -17,7 +17,7 @@ const updateSchema = z.object({
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
   dateTaken: z.string().nullable().optional(),
-  categoryId: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional().transform(v => v === "" ? null : v),
   isPublished: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   lat: z.number().optional().nullable(),
@@ -97,35 +97,40 @@ export async function PUT(req: NextRequest, { params }: Params) {
   };
 
   // Update work + replace all additional images + update categories atomically
-  const work = await db.$transaction(async (tx) => {
-    const updated = await tx.work.update({
-      where: { id },
-      data: {
-        ...data,
-        ...(categoryIds !== undefined && {
-          categories: {
-            set: categoryIds.map((cid) => ({ id: cid })),
-          },
-        }),
-      },
-      include: {
-        category: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
-        categories: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
-        images: { orderBy: { order: "asc" } },
-      },
-    });
-    if (additionalImages !== undefined) {
-      await tx.workImage.deleteMany({ where: { workId: id } });
-      if (additionalImages.length > 0) {
-        await tx.workImage.createMany({
-          data: additionalImages.map((url, i) => ({ workId: id, url, order: i })),
-        });
+  try {
+    const work = await db.$transaction(async (tx) => {
+      const updated = await tx.work.update({
+        where: { id },
+        data: {
+          ...data,
+          ...(categoryIds !== undefined && {
+            categories: {
+              set: categoryIds.map((cid) => ({ id: cid })),
+            },
+          }),
+        },
+        include: {
+          category: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
+          categories: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
+          images: { orderBy: { order: "asc" } },
+        },
+      });
+      if (additionalImages !== undefined) {
+        await tx.workImage.deleteMany({ where: { workId: id } });
+        if (additionalImages.length > 0) {
+          await tx.workImage.createMany({
+            data: additionalImages.map((url, i) => ({ workId: id, url, order: i })),
+          });
+        }
       }
-    }
-    return updated;
-  });
-
-  return NextResponse.json(work);
+      return updated;
+    });
+    return NextResponse.json(work);
+  } catch (err) {
+    console.error("[PUT /api/portfolio/works/:id]", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 // DELETE /api/portfolio/works/[id]

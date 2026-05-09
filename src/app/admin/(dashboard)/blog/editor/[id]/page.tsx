@@ -66,6 +66,9 @@ export default function BlogEditorPage({
   const [activeLang, setActiveLang] = useState<ActiveLang>("ar");
   const [showPreview, setShowPreview] = useState(false);
 
+  // وضع المقال — بسيط (نص + تنسيق) أو متقدم (+ صور/معرض/فيديو)
+  const [simpleMode, setSimpleMode] = useState(true);
+
   // Form fields
   const [titleAr, setTitleAr] = useState("");
   const [titleEn, setTitleEn] = useState("");
@@ -160,7 +163,7 @@ export default function BlogEditorPage({
         setTimeout(() => setSaveStatus("idle"), 3000);
       }
     },
-    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, selectedTagIds, scheduledAt, id]
+    [titleAr, titleEn, slug, coverImage, contentAr, contentEn, status, signatureDisabled, selectedTagIds, scheduledAt, id] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Auto-save on content change (debounce 3s)
@@ -213,6 +216,15 @@ export default function BlogEditorPage({
         </div>
 
         <div className="editor-page-actions">
+          {/* زر التبديل بين الوضع البسيط والمتقدم */}
+          <button
+            className={`btn-outline btn-mode-toggle${simpleMode ? "" : " btn-outline--active"}`}
+            onClick={() => setSimpleMode(v => !v)}
+            title={simpleMode ? "التبديل للمحرر المتقدم (صور، معرض، فيديو)" : "العودة للوضع البسيط"}
+          >
+            {simpleMode ? "✦ متقدم" : "◎ بسيط"}
+          </button>
+
           <button
             className="btn-outline"
             onClick={() => setShowPreview(!showPreview)}
@@ -415,13 +427,25 @@ export default function BlogEditorPage({
         </button>
       </div>
 
-      {/* ── Editor ──────────────────────────────────────────────────────── */}
+      {/* ── منطقة الكتابة ──────────────────────────────────────────────── */}
+
+      {/* معاينة صورة الغلاف فوق المحرر — في الوضع البسيط فقط */}
+      {simpleMode && coverImage && (
+        <div className="simple-cover-preview">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={coverImage} alt="" className="simple-cover-img" />
+          <span className="simple-cover-badge">صورة الغلاف</span>
+        </div>
+      )}
+
+      {/* المحرر — بسيط (بدون أدوات وسائط) أو متقدم (كامل) */}
       <div style={{ display: activeLang === "ar" ? "block" : "none" }}>
         <BlogEditor
           content={contentAr}
           onChange={(json) => { setContentAr(json); scheduleAutoSave(); }}
           placeholder="ابدأ الكتابة بالعربية..."
           dir="rtl"
+          simpleMode={simpleMode}
         />
       </div>
       <div style={{ display: activeLang === "en" ? "block" : "none" }}>
@@ -430,6 +454,7 @@ export default function BlogEditorPage({
           onChange={(json) => { setContentEn(json); scheduleAutoSave(); }}
           placeholder="Start writing in English..."
           dir="ltr"
+          simpleMode={simpleMode}
         />
       </div>
 
@@ -560,6 +585,36 @@ export default function BlogEditorPage({
         .btn-outline:hover:not(:disabled) { border-color: var(--text-secondary); color: var(--text-primary); }
         .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-outline--active { border-color: #6366f1; color: #6366f1; }
+
+        /* صورة الغلاف فوق المحرر — وضع بسيط */
+        .simple-cover-preview {
+          position: relative;
+          width: 100%;
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          margin-bottom: 0.75rem;
+          background: var(--bg-secondary);
+        }
+        .simple-cover-img {
+          width: 100%;
+          height: auto;
+          display: block;
+          max-height: 420px;
+          object-fit: cover;
+        }
+        .simple-cover-badge {
+          position: absolute;
+          top: 0.625rem;
+          inset-inline-end: 0.625rem;
+          font-size: 0.7rem;
+          padding: 0.2rem 0.55rem;
+          background: rgba(0,0,0,0.55);
+          color: #fff;
+          border-radius: 999px;
+          letter-spacing: 0.03em;
+          backdrop-filter: blur(4px);
+        }
+        .btn-mode-toggle { gap: 0.375rem; }
 
         .editor-scheduler-bar {
           display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;

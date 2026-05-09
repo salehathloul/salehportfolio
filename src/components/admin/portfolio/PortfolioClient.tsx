@@ -170,20 +170,33 @@ export default function PortfolioClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const result = await res.json();
-      if (!res.ok) {
-        setModalError(typeof result.error === "string" ? result.error : "فشل الحفظ");
+
+      // Try to parse JSON; fall back to raw text so we see the real error
+      let result: Record<string, unknown> = {};
+      const rawText = await res.text();
+      try { result = JSON.parse(rawText); } catch {
+        setModalError(`خطأ ${res.status}: ${rawText.slice(0, 200)}`);
         return;
       }
 
+      if (!res.ok) {
+        const errMsg = typeof result.error === "string"
+          ? result.error
+          : JSON.stringify(result).slice(0, 300);
+        setModalError(errMsg || "فشل الحفظ");
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const saved = result as any;
       if (isEdit) {
-        setWorks((prev) => prev.map((w) => (w.id === result.id ? { ...w, ...result } : w)));
+        setWorks((prev) => prev.map((w) => (w.id === saved.id ? { ...w, ...saved } : w)));
       } else {
-        setWorks((prev) => [...prev, result]);
+        setWorks((prev) => [...prev, saved]);
       }
       setModalOpen(false);
-    } catch {
-      setModalError("خطأ في الاتصال");
+    } catch (err) {
+      setModalError(`خطأ في الاتصال: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setModalSaving(false);
     }

@@ -22,6 +22,8 @@ interface BlogEditorProps {
   onChange: (json: object) => void;
   placeholder?: string;
   dir?: "rtl" | "ltr";
+  /** وضع بسيط — يخفي أدوات إدراج الصور/الفيديو/المعرض */
+  simpleMode?: boolean;
 }
 
 // ── Icon helpers ────────────────────────────────────────────────────────────
@@ -73,6 +75,7 @@ export default function BlogEditor({
   onChange,
   placeholder = "ابدأ الكتابة هنا...",
   dir = "rtl",
+  simpleMode = false,
 }: BlogEditorProps) {
   const [linkUrl, setLinkUrl] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
@@ -364,61 +367,67 @@ export default function BlogEditor({
 
         <Divider />
 
-        {/* Single Image */}
-        <Btn onClick={() => imageInputRef.current?.click()} disabled={uploading} title="صورة عادية">
-          <Ico d="M1 3h14v10H1zM1 10l4-3 3 2.5 2-1.5 4 4M10 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-        </Btn>
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={(e) => uploadFiles(e.target.files, "single")}
-        />
+        {/* أدوات الوسائط — مخفية في الوضع البسيط */}
+        {!simpleMode && (
+          <>
+            {/* Single Image */}
+            <Btn onClick={() => imageInputRef.current?.click()} disabled={uploading} title="صورة عادية">
+              <Ico d="M1 3h14v10H1zM1 10l4-3 3 2.5 2-1.5 4 4M10 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+            </Btn>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => uploadFiles(e.target.files, "single")}
+            />
 
-        {/* Gallery */}
-        <select
-          className="editor-select"
-          style={{ width: "50px" }}
-          value={galleryColumns}
-          onChange={(e) => setGalleryColumns(Number(e.target.value))}
-          title="عدد أعمدة المعرض"
-        >
-          <option value={2}>٢</option>
-          <option value={3}>٣</option>
-          <option value={4}>٤</option>
-        </select>
-        <Btn onClick={() => galleryInputRef.current?.click()} disabled={uploading} title="معرض صور (Grid)">
-          <Ico d="M1 3h6v6H1zM9 3h6v6H9zM1 11h6v2H1zM9 11h6v2H9z" />
-        </Btn>
-        <input
-          ref={galleryInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          style={{ display: "none" }}
-          onChange={(e) => uploadFiles(e.target.files, "gallery")}
-        />
+            {/* Gallery */}
+            <select
+              className="editor-select"
+              style={{ width: "50px" }}
+              value={galleryColumns}
+              onChange={(e) => setGalleryColumns(Number(e.target.value))}
+              title="عدد أعمدة المعرض"
+            >
+              <option value={2}>٢</option>
+              <option value={3}>٣</option>
+              <option value={4}>٤</option>
+            </select>
+            <Btn onClick={() => galleryInputRef.current?.click()} disabled={uploading} title="معرض صور (Grid)">
+              <Ico d="M1 3h6v6H1zM9 3h6v6H9zM1 11h6v2H1zM9 11h6v2H9z" />
+            </Btn>
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => uploadFiles(e.target.files, "gallery")}
+            />
 
-        {/* Slideshow */}
-        <Btn onClick={() => slideshowInputRef.current?.click()} disabled={uploading} title="معرض سلايد شو">
-          <Ico d="M1 4h14v8H1zM5 8l3 2.5L11 8M7 6h.01" />
-        </Btn>
-        <input
-          ref={slideshowInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          style={{ display: "none" }}
-          onChange={(e) => uploadFiles(e.target.files, "slideshow")}
-        />
+            {/* Slideshow */}
+            <Btn onClick={() => slideshowInputRef.current?.click()} disabled={uploading} title="معرض سلايد شو">
+              <Ico d="M1 4h14v8H1zM5 8l3 2.5L11 8M7 6h.01" />
+            </Btn>
+            <input
+              ref={slideshowInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => uploadFiles(e.target.files, "slideshow")}
+            />
 
-        {/* Video */}
-        <Btn onClick={() => { setShowVideoInput(!showVideoInput); setShowLinkInput(false); }} title="تضمين فيديو يوتيوب / فيميو">
-          <Ico d="M1 3h14v10H1zM6 6l5 2.5L6 11z" />
-        </Btn>
+            {/* Video */}
+            <Btn onClick={() => { setShowVideoInput(!showVideoInput); setShowLinkInput(false); }} title="تضمين فيديو يوتيوب / فيميو">
+              <Ico d="M1 3h14v10H1zM6 6l5 2.5L6 11z" />
+            </Btn>
 
-        <Divider />
+            <Divider />
+          </>
+        )}
+
 
         {/* Undo / Redo */}
         <Btn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="تراجع (Ctrl+Z)">

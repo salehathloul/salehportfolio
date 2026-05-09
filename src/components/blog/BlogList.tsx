@@ -142,7 +142,7 @@ export default function BlogList({ posts }: Props) {
 
         .bl-cover {
           position: relative;
-          padding-bottom: 64%;
+          padding-bottom: 125%;
           border-radius: var(--radius-md);
           overflow: hidden;
           background: var(--bg-secondary);

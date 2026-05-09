@@ -68,6 +68,8 @@ export async function PUT(req: NextRequest) {
     "studioVideoUrl",
     "artistSignatureUrl",
     "impactStats",
+    "maintenanceMsgAr",
+    "maintenanceMsgEn",
   ] as const;
 
   // non-nullable String fields — skip update if value is falsy (keep DB value)
@@ -81,6 +83,7 @@ export async function PUT(req: NextRequest) {
     "navPortfolioVisible", "navBlogVisible", "navAcquireVisible",
     "navAboutVisible", "navContactVisible",
     "blogSignatureOn",
+    "maintenanceMode",
   ] as const;
 
   const data: Record<string, string | null | boolean> = {};

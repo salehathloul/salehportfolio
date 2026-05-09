@@ -11,6 +11,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
 import { VisitorProvider } from "@/components/auth/VisitorContext";
 import PublicSessionProvider from "@/components/layout/PublicSessionProvider";
+import MaintenancePage from "@/components/layout/MaintenancePage";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://saleh-portfolio.vercel.app";
@@ -76,6 +77,10 @@ interface Settings {
   contactLinks: string | null;
   // SEO/OG image
   seoImageUrl: string | null;
+  // Maintenance
+  maintenanceMode: boolean | null;
+  maintenanceMsgAr: string | null;
+  maintenanceMsgEn: string | null;
 }
 
 async function getSettings(): Promise<Settings | null> {
@@ -135,6 +140,9 @@ async function getSettings(): Promise<Settings | null> {
         customLinks: true,
         contactLinks: true,
         seoImageUrl: true,
+        maintenanceMode: true,
+        maintenanceMsgAr: true,
+        maintenanceMsgEn: true,
       },
     });
   } catch {
@@ -290,6 +298,24 @@ export default async function LocaleLayout({
     getMessages(),
     getSettings(),
   ]);
+
+  // ── Maintenance mode — أظهر صفحة الصيانة لجميع الزوار ──────────────────
+  if (settings?.maintenanceMode) {
+    return (
+      <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
+        <body>
+          <MaintenancePage
+            msgAr={settings.maintenanceMsgAr}
+            msgEn={settings.maintenanceMsgEn}
+            logoLight={settings.logoLight}
+            logoDark={settings.logoDark}
+            titleAr={settings.titleAr}
+            titleEn={settings.titleEn}
+          />
+        </body>
+      </html>
+    );
+  }
 
   // Parse contact links for floating button
   let floatingWhatsapp: string | null = null;

@@ -17,7 +17,7 @@ const createSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   dateTaken: z.string().optional().nullable(),
-  categoryId: z.string().optional().nullable(),
+  categoryId: z.string().optional().nullable().transform(v => v === "" ? null : v),
   isPublished: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   lat: z.number().optional().nullable(),
@@ -86,26 +86,31 @@ export async function POST(req: NextRequest) {
   // If scheduledAt is set, force isPublished = false until the cron publishes it
   const isPublished = scheduledAt ? false : workData.isPublished;
 
-  const work = await db.work.create({
-    data: {
-      ...workData,
-      isPublished,
-      order,
-      dateTaken: workData.dateTaken ? new Date(workData.dateTaken) : null,
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-      categories: categoryIds?.length
-        ? { connect: categoryIds.map((id) => ({ id })) }
-        : undefined,
-      images: additionalImages?.length
-        ? { create: additionalImages.map((url, i) => ({ url, order: i })) }
-        : undefined,
-    },
-    include: {
-      category: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
-      categories: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
-      images: { orderBy: { order: "asc" } },
-    },
-  });
-
-  return NextResponse.json(work, { status: 201 });
+  try {
+    const work = await db.work.create({
+      data: {
+        ...workData,
+        isPublished,
+        order,
+        dateTaken: workData.dateTaken ? new Date(workData.dateTaken) : null,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        categories: categoryIds?.length
+          ? { connect: categoryIds.map((id) => ({ id })) }
+          : undefined,
+        images: additionalImages?.length
+          ? { create: additionalImages.map((url, i) => ({ url, order: i })) }
+          : undefined,
+      },
+      include: {
+        category: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
+        categories: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
+        images: { orderBy: { order: "asc" } },
+      },
+    });
+    return NextResponse.json(work, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/portfolio/works]", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

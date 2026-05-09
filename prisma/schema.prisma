@@ -107,6 +107,10 @@ model SiteSettings {
   studioVideoUrl           String?  // YouTube or Vimeo embed URL for studio/behind-the-scenes video
   artistSignatureUrl       String?  // Transparent PNG of handwritten signature
   impactStats              String?  // JSON: {works,exhibitions,years,countries}
+  // Maintenance mode
+  maintenanceMode          Boolean  @default(false)
+  maintenanceMsgAr         String?  // رسالة الصيانة بالعربي
+  maintenanceMsgEn         String?  // رسالة الصيانة بالإنجليزي
   updatedAt                DateTime @updatedAt
 }
 

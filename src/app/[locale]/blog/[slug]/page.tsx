@@ -189,6 +189,21 @@ export default async function BlogPostPage({ params }: Props) {
             )}
           </header>
 
+          {/* صورة الغلاف — تظهر قبل النص مباشرة */}
+          {post.coverImage && (
+            <div className="bpost-cover-main">
+              <Image
+                src={post.coverImage}
+                alt={title ?? ""}
+                width={0}
+                height={0}
+                sizes="(max-width: 768px) 100vw, 860px"
+                className="bpost-cover-main-img"
+                priority
+              />
+            </div>
+          )}
+
           {/* Content */}
           <div className="bpost-content">
             {sigOn && sigText && sigPos === "top" && (
@@ -224,7 +239,21 @@ export default async function BlogPostPage({ params }: Props) {
       </article>
 
       <style>{`
-        /* Cover */
+        /* صورة الغلاف الرئيسية داخل المقال */
+        .bpost-cover-main {
+          width: 100%;
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          background: var(--bg-secondary);
+          margin-bottom: 2rem;
+        }
+        .bpost-cover-main-img {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        /* Cover (legacy full-bleed) */
         .bpost-cover {
           position: relative;
           width: 100%;

@@ -81,6 +81,10 @@ const schema = z.object({
   studioVideoUrl: z.string().optional().nullable(),
   artistSignatureUrl: z.string().optional().nullable(),
   impactStats: z.string().optional().nullable(),
+  // Maintenance mode
+  maintenanceMode: z.boolean().optional(),
+  maintenanceMsgAr: z.string().max(200).optional().nullable(),
+  maintenanceMsgEn: z.string().max(200).optional().nullable(),
   // SEO image
   seoImageUrl: z.string().optional().nullable(),
   // Analytics & Marketing
@@ -153,6 +157,9 @@ interface InitialSettings {
   studioVideoUrl?: string | null;
   artistSignatureUrl?: string | null;
   impactStats?: string | null;
+  maintenanceMode?: boolean | null;
+  maintenanceMsgAr?: string | null;
+  maintenanceMsgEn?: string | null;
   seoImageUrl?: string | null;
   analyticsGa4Id?: string | null;
   analyticsGtmId?: string | null;
@@ -262,6 +269,9 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
         studioVideoUrl: initial.studioVideoUrl ?? null,
         artistSignatureUrl: initial.artistSignatureUrl ?? null,
         impactStats: initial.impactStats ?? null,
+        maintenanceMode: initial.maintenanceMode ?? false,
+        maintenanceMsgAr: initial.maintenanceMsgAr ?? null,
+        maintenanceMsgEn: initial.maintenanceMsgEn ?? null,
         seoImageUrl: initial.seoImageUrl ?? null,
         analyticsGa4Id: initial.analyticsGa4Id ?? "",
         analyticsGtmId: initial.analyticsGtmId ?? "",
@@ -1298,6 +1308,66 @@ export default function SettingsForm({ initial }: { initial: InitialSettings }) 
         <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
           أدخل المعرّفات فقط — السكريبت يُحقن تلقائياً في كل صفحات الموقع.
         </p>
+      </Section>
+
+      {/* ── وضع الصيانة ──────────────────────────────────────────────── */}
+      <Section
+        title="وضع الصيانة"
+        description="عند التفعيل يُعرض للزوار شاشة انتظار — لوحة التحكم تبقى تعمل"
+      >
+        <div className="maint-toggle-row">
+          <div className="maint-toggle-info">
+            <span className="maint-toggle-label">
+              {watch("maintenanceMode") ? "🔧 الموقع في وضع الصيانة" : "✅ الموقع يعمل بشكل طبيعي"}
+            </span>
+            <span className="maint-toggle-sub">
+              {watch("maintenanceMode") ? "الزوار يرون شاشة الانتظار الآن" : "افعّل لإخفاء الموقع مؤقتاً"}
+            </span>
+          </div>
+          <label className="toggle-switch">
+            <input type="checkbox" {...register("maintenanceMode")} className="toggle-input" />
+            <span className={`toggle-track${watch("maintenanceMode") ? " toggle-track--danger" : ""}`}>
+              <span className="toggle-thumb" />
+            </span>
+          </label>
+        </div>
+
+        {watch("maintenanceMode") && (
+          <div style={{ marginTop: "1rem" }}>
+            <div className="field-pair">
+              <div className="field-wrap">
+                <label className="field-label">رسالة الصيانة — عربي</label>
+                <input
+                  {...register("maintenanceMsgAr")}
+                  className="text-input"
+                  dir="rtl"
+                  placeholder="الموقع يخضع لتحديثات، سنعود قريباً"
+                />
+              </div>
+              <div className="field-wrap">
+                <label className="field-label">Maintenance message — English</label>
+                <input
+                  {...register("maintenanceMsgEn")}
+                  className="text-input"
+                  dir="ltr"
+                  placeholder="Under maintenance, we'll be back soon"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <style>{`
+          .maint-toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; padding: 1rem 1.25rem; border: 1px solid var(--border);
+            border-radius: var(--radius-md); background: var(--bg-secondary);
+          }
+          .maint-toggle-info { display: flex; flex-direction: column; gap: 0.2rem; }
+          .maint-toggle-label { font-size: 0.9375rem; font-weight: 500; color: var(--text-primary); }
+          .maint-toggle-sub { font-size: 0.8125rem; color: var(--text-muted); }
+          .toggle-track--danger { background: #e53e3e !important; }
+        `}</style>
       </Section>
 
       {/* Bottom save */}
