@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import WorkGallery from "@/components/portfolio/WorkGallery";
+import ImageLightbox from "@/components/portfolio/ImageLightbox";
 import ShareButtons from "@/components/blog/ShareButtons";
 import WorkLikeButton from "@/components/portfolio/WorkLikeButton";
 import RelatedWorks from "@/components/portfolio/RelatedWorks";
@@ -166,17 +167,13 @@ export default async function WorkDetailPage({ params }: Props) {
             ]}
           />
 
-          {/* Hero image — full width */}
-          <div className="wd-hero" style={{ aspectRatio: `${work.width} / ${work.height}` }}>
-            <Image
-              src={work.imageUrl}
-              alt={title ?? ""}
-              fill
-              className="wd-hero-img"
-              sizes="(max-width: 768px) 100vw, 1200px"
-              priority
-            />
-          </div>
+          {/* Hero image — click to open fullscreen */}
+          <ImageLightbox
+            src={work.imageUrl}
+            alt={title ?? ""}
+            width={work.width}
+            height={work.height}
+          />
 
           {/* Mobile-only inline nav — directly below image */}
           {(prevWork || nextWork) && (
@@ -353,16 +350,7 @@ export default async function WorkDetailPage({ params }: Props) {
         }
         .wd-back:hover { color: var(--text-primary); }
 
-        /* Hero image */
-        .wd-hero {
-          position: relative;
-          width: 100%;
-          max-height: 80svh;
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          background: var(--bg-primary);
-        }
-        .wd-hero-img { object-fit: contain; }
+        /* Hero image — handled by ImageLightbox component */
 
         /* Below-image content area */
         .wd-content { margin-top: 1.75rem; }

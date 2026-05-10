@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -114,12 +114,11 @@ interface CardProps {
   locale: string;
   showInfo: boolean;
   index: number;
-  onOpen: (index: number) => void;
   style?: React.CSSProperties;
   className?: string;
 }
 
-function WorkCard({ work, locale, showInfo, index, onOpen, style, className = "" }: CardProps) {
+function WorkCard({ work, locale, showInfo, index, style, className = "" }: CardProps) {
   const [loaded, setLoaded] = useState(false);
   const title = locale === "ar" ? work.titleAr : work.titleEn;
   const location = locale === "ar" ? work.locationAr : work.locationEn;
@@ -135,7 +134,7 @@ function WorkCard({ work, locale, showInfo, index, onOpen, style, className = ""
       style={style}
       layout
     >
-      <button className="wc-link" onClick={() => onOpen(index)} aria-label={title}>
+      <Link href={`/${locale}/portfolio/${work.code}`} className="wc-link" tabIndex={0} aria-label={title}>
         {/* Shimmer */}
         <div className={`wc-shimmer ${loaded ? "wc-shimmer--done" : ""}`} />
 
@@ -159,117 +158,8 @@ function WorkCard({ work, locale, showInfo, index, onOpen, style, className = ""
           <span className="wc-title">{title}</span>
           {location && <span className="wc-location">{location}</span>}
         </div>
-      </button>
+      </Link>
     </motion.div>
-  );
-}
-
-// ── Lightbox ──────────────────────────────────────────────────────────────────
-
-interface LightboxProps {
-  works: Work[];
-  index: number;
-  locale: string;
-  onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-}
-
-function Lightbox({ works, index, locale, onClose, onPrev, onNext }: LightboxProps) {
-  const work = works[index];
-  const title = locale === "ar" ? work.titleAr : work.titleEn;
-  const location = locale === "ar" ? work.locationAr : work.locationEn;
-  const hasPrev = index > 0;
-  const hasNext = index < works.length - 1;
-
-  return (
-    <AnimatePresence>
-      <motion.div
-        className="lb-backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.22 }}
-        onClick={onClose}
-      >
-        {/* Image container */}
-        <motion.div
-          className="lb-img-wrap"
-          key={work.id}
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Image
-            src={work.imageUrl}
-            alt={title}
-            fill
-            className="lb-img"
-            sizes="100vw"
-            priority
-          />
-        </motion.div>
-
-        {/* Top bar */}
-        <div className="lb-top" onClick={(e) => e.stopPropagation()}>
-          <div className="lb-meta" dir={locale === "ar" ? "rtl" : "ltr"}>
-            <span className="lb-code">{work.code}</span>
-            <span className="lb-title">{title}</span>
-            {location && <span className="lb-location">{location}</span>}
-          </div>
-          <div className="lb-top-actions">
-            <Link
-              href={`/${locale}/portfolio/${work.code}`}
-              className="lb-detail-link"
-              onClick={onClose}
-            >
-              {locale === "ar" ? "عرض التفاصيل" : "Details"}
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 10L10 2M10 2H5M10 2v5" />
-              </svg>
-            </Link>
-            <button className="lb-close" onClick={onClose} aria-label="إغلاق">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M14 4L4 14M4 4l10 10" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Prev button */}
-        {hasPrev && (
-          <button
-            className="lb-nav lb-nav--prev"
-            onClick={(e) => { e.stopPropagation(); onPrev(); }}
-            aria-label="السابق"
-          >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 4l-7 7 7 7" />
-            </svg>
-          </button>
-        )}
-
-        {/* Next button */}
-        {hasNext && (
-          <button
-            className="lb-nav lb-nav--next"
-            onClick={(e) => { e.stopPropagation(); onNext(); }}
-            aria-label="التالي"
-          >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 4l7 7-7 7" />
-            </svg>
-          </button>
-        )}
-
-        {/* Counter */}
-        <div className="lb-counter" onClick={(e) => e.stopPropagation()}>
-          {index + 1} / {works.length}
-        </div>
-      </motion.div>
-    </AnimatePresence>
   );
 }
 
@@ -288,7 +178,6 @@ export default function PortfolioClient({
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [showInfo, setShowInfo] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Filtered works — category + search
   const filtered = works
@@ -309,46 +198,10 @@ export default function PortfolioClient({
       );
     });
 
-  // Lightbox handlers
-  const openLightbox = useCallback((index: number) => setLightboxIndex(index), []);
-  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
-  const prevImage = useCallback(() => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i)), []);
-  const nextImage = useCallback(() => setLightboxIndex((i) => (i !== null && i < filtered.length - 1 ? i + 1 : i)), [filtered.length]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowLeft") locale === "ar" ? nextImage() : prevImage();
-      if (e.key === "ArrowRight") locale === "ar" ? prevImage() : nextImage();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxIndex, locale, closeLightbox, prevImage, nextImage]);
-
-  // Lock body scroll when lightbox is open
-  useEffect(() => {
-    document.body.style.overflow = lightboxIndex !== null ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [lightboxIndex]);
-
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <>
-      {/* ── Lightbox ── */}
-      {lightboxIndex !== null && (
-        <Lightbox
-          works={filtered}
-          index={lightboxIndex}
-          locale={locale}
-          onClose={closeLightbox}
-          onPrev={prevImage}
-          onNext={nextImage}
-        />
-      )}
-
       {/* ── Search ── */}
       <div className="pt-search-wrap container">
         <div className="pt-search">
@@ -449,11 +302,11 @@ export default function PortfolioClient({
         {filtered.length === 0 ? (
           <p className="pt-empty">{t("noWorks")}</p>
         ) : layout === "grid" ? (
-          <GridLayout works={filtered} locale={locale} showInfo={showInfo} onOpen={openLightbox} />
+          <GridLayout works={filtered} locale={locale} showInfo={showInfo} />
         ) : layout === "masonry" ? (
-          <MasonryLayout works={filtered} locale={locale} showInfo={showInfo} onOpen={openLightbox} />
+          <MasonryLayout works={filtered} locale={locale} showInfo={showInfo} />
         ) : (
-          <ScatteredLayout works={filtered} locale={locale} showInfo={showInfo} onOpen={openLightbox} />
+          <ScatteredLayout works={filtered} locale={locale} showInfo={showInfo} />
         )}
       </div>
 
@@ -771,148 +624,7 @@ export default function PortfolioClient({
           color: inherit;
         }
 
-        /* ══ Lightbox ══════════════════════════════════════════════════════════ */
-        .lb-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 1000;
-          background: rgba(0, 0, 0, 0.96);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
 
-        .lb-img-wrap {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          max-width: min(90vw, calc(100vh * 1.6));
-          max-height: min(90vh, calc(90vw / 0.5));
-        }
-
-        .lb-img {
-          object-fit: contain;
-        }
-
-        /* Top bar */
-        .lb-top {
-          position: fixed;
-          top: 0;
-          inset-inline: 0;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1rem 1.25rem;
-          background: linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%);
-          z-index: 10;
-          gap: 1rem;
-        }
-
-        .lb-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 0.15rem;
-          min-width: 0;
-        }
-
-        .lb-code {
-          font-size: 0.65rem;
-          color: rgba(255,255,255,0.45);
-          letter-spacing: 0.08em;
-        }
-
-        .lb-title {
-          font-size: 0.95rem;
-          color: #fff;
-          font-weight: 400;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 40vw;
-        }
-
-        .lb-location {
-          font-size: 0.75rem;
-          color: rgba(255,255,255,0.5);
-        }
-
-        .lb-top-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-shrink: 0;
-        }
-
-        .lb-detail-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.78rem;
-          color: rgba(255,255,255,0.65);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: var(--radius-md);
-          padding: 0.3rem 0.75rem;
-          text-decoration: none;
-          transition: color 0.2s, border-color 0.2s;
-          white-space: nowrap;
-        }
-        .lb-detail-link:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
-
-        .lb-close {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 36px;
-          height: 36px;
-          background: rgba(255,255,255,0.08);
-          border: none;
-          border-radius: 50%;
-          color: rgba(255,255,255,0.75);
-          cursor: pointer;
-          transition: background 0.2s, color 0.2s;
-        }
-        .lb-close:hover { background: rgba(255,255,255,0.18); color: #fff; }
-
-        /* Prev / Next */
-        .lb-nav {
-          position: fixed;
-          top: 50%;
-          transform: translateY(-50%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 44px;
-          height: 44px;
-          background: rgba(255,255,255,0.08);
-          border: none;
-          border-radius: 50%;
-          color: rgba(255,255,255,0.75);
-          cursor: pointer;
-          z-index: 10;
-          transition: background 0.2s, color 0.2s;
-        }
-        .lb-nav:hover { background: rgba(255,255,255,0.18); color: #fff; }
-        .lb-nav--prev { inset-inline-start: 1.25rem; }
-        .lb-nav--next { inset-inline-end: 1.25rem; }
-
-        @media (max-width: 480px) {
-          .lb-nav { width: 36px; height: 36px; }
-          .lb-nav--prev { inset-inline-start: 0.5rem; }
-          .lb-nav--next { inset-inline-end: 0.5rem; }
-        }
-
-        /* Counter */
-        .lb-counter {
-          position: fixed;
-          bottom: 1.25rem;
-          left: 50%;
-          transform: translateX(-50%);
-          font-size: 0.75rem;
-          color: rgba(255,255,255,0.4);
-          letter-spacing: 0.06em;
-          z-index: 10;
-          user-select: none;
-        }
       `}</style>
     </>
   );
@@ -924,29 +636,21 @@ interface SubLayoutProps {
   works: Work[];
   locale: string;
   showInfo: boolean;
-  onOpen: (index: number) => void;
 }
 
-function GridLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
+function GridLayout({ works, locale, showInfo }: SubLayoutProps) {
   return (
     <div className="pt-grid">
       <AnimatePresence mode="popLayout">
         {works.map((w, i) => (
-          <WorkCard
-            key={w.id}
-            work={w}
-            locale={locale}
-            showInfo={showInfo}
-            index={i}
-            onOpen={onOpen}
-          />
+          <WorkCard key={w.id} work={w} locale={locale} showInfo={showInfo} index={i} />
         ))}
       </AnimatePresence>
     </div>
   );
 }
 
-function MasonryLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
+function MasonryLayout({ works, locale, showInfo }: SubLayoutProps) {
   return (
     <div className="pt-masonry">
       <AnimatePresence>
@@ -955,11 +659,7 @@ function MasonryLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
           return (
             <div key={w.id} className="pt-masonry-item">
               <WorkCard
-                work={w}
-                locale={locale}
-                showInfo={showInfo}
-                index={i}
-                onOpen={onOpen}
+                work={w} locale={locale} showInfo={showInfo} index={i}
                 style={{ "--aspect": `${pct}%` } as React.CSSProperties}
               />
             </div>
@@ -970,7 +670,7 @@ function MasonryLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
   );
 }
 
-function ScatteredLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
+function ScatteredLayout({ works, locale, showInfo }: SubLayoutProps) {
   return (
     <div className="pt-scattered">
       <AnimatePresence mode="popLayout">
@@ -978,17 +678,8 @@ function ScatteredLayout({ works, locale, showInfo, onOpen }: SubLayoutProps) {
           const p = PATTERN[i % PATTERN.length];
           return (
             <WorkCard
-              key={w.id}
-              work={w}
-              locale={locale}
-              showInfo={showInfo}
-              index={i}
-              onOpen={onOpen}
-              style={{
-                gridColumn: `span ${p.col}`,
-                gridRow: `span ${p.row}`,
-                position: "relative",
-              }}
+              key={w.id} work={w} locale={locale} showInfo={showInfo} index={i}
+              style={{ gridColumn: `span ${p.col}`, gridRow: `span ${p.row}`, position: "relative" }}
             />
           );
         })}
