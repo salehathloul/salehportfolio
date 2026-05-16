@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendNewsletterBroadcast } from "@/lib/email";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -29,7 +30,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
 
-  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled, tagIds, scheduledAt } = body;
+  const { slug, titleAr, titleEn, coverImage, contentAr, contentEn, status, signatureDisabled, showCoverInPost, tagIds, scheduledAt } = body;
 
   // Slug uniqueness check (skip self)
   if (slug) {
@@ -60,6 +61,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       ...(contentEn !== undefined && { contentEn }),
       ...(effectiveStatus !== undefined && { status: effectiveStatus }),
       ...(signatureDisabled !== undefined && { signatureDisabled }),
+      ...(showCoverInPost !== undefined && { showCoverInPost }),
       ...(nowPublishing && !scheduledAt && { publishedAt: new Date() }),
       scheduledAt: scheduledAt !== undefined
         ? (scheduledAt ? new Date(scheduledAt) : null)
@@ -70,6 +72,28 @@ export async function PUT(req: NextRequest, { params }: Params) {
     },
     include: { tags: true },
   });
+
+  // ── Broadcast to newsletter subscribers when first published ────────────────
+  if (nowPublishing && !scheduledAt) {
+    try {
+      const subscribers = await db.newsletterSubscriber.findMany({
+        where: { status: "active" },
+        select: { email: true },
+      });
+      if (subscribers.length > 0) {
+        // Fire and forget — don't block the response
+        sendNewsletterBroadcast({
+          titleAr: post.titleAr,
+          titleEn: post.titleEn ?? null,
+          slug: post.slug,
+          coverImage: post.coverImage,
+          subscribers,
+        }).catch(console.error);
+      }
+    } catch (e) {
+      console.error("Newsletter broadcast error:", e);
+    }
+  }
 
   return NextResponse.json(post);
 }

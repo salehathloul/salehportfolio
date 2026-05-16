@@ -13,7 +13,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await req.json();
-  const { titleAr, titleEn, descriptionAr, descriptionEn, coverImage, slug, isPublished, images } = body;
+  const { titleAr, titleEn, descriptionAr, descriptionEn, coverImage, slug, isPublished, showInPortfolio, images } = body;
 
   try {
     const project = await db.project.update({
@@ -26,6 +26,7 @@ export async function PUT(
         coverImage,
         slug,
         isPublished: isPublished ?? true,
+        ...(showInPortfolio !== undefined && { showInPortfolio }),
       },
     });
 

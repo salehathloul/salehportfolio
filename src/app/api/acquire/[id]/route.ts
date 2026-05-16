@@ -25,6 +25,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     data: {
       ...(isActive !== undefined && { isActive }),
       ...(body.specs !== undefined && { specs: body.specs }),
+      ...(body.shippingAvailable !== undefined && { shippingAvailable: body.shippingAvailable }),
       ...(body.scheduledAt !== undefined && {
         scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
       }),

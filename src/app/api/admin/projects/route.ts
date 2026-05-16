@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { titleAr, titleEn, descriptionAr, descriptionEn, coverImage, slug, isPublished } = body;
+  const { titleAr, titleEn, descriptionAr, descriptionEn, coverImage, slug, isPublished, showInPortfolio, images } = body;
 
   if (!titleAr || !coverImage || !slug) {
     return NextResponse.json({ error: "titleAr, coverImage, slug مطلوبة" }, { status: 400 });
@@ -36,7 +36,24 @@ export async function POST(req: NextRequest) {
         coverImage,
         slug,
         isPublished: isPublished ?? true,
+        showInPortfolio: showInPortfolio ?? true,
+        // حفظ الصور مباشرة عند الإنشاء
+        ...(Array.isArray(images) && images.length > 0 && {
+          images: {
+            createMany: {
+              data: images.map((img: { url: string; captionAr?: string; captionEn?: string; width?: number; height?: number }, i: number) => ({
+                url: img.url,
+                captionAr: img.captionAr ?? null,
+                captionEn: img.captionEn ?? null,
+                width: img.width ?? 0,
+                height: img.height ?? 0,
+                order: i,
+              })),
+            },
+          },
+        }),
       },
+      include: { _count: { select: { images: true } } },
     });
     return NextResponse.json(project, { status: 201 });
   } catch (err) {

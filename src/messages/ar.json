@@ -30,6 +30,9 @@
   "portfolio": {
     "title": "المعرض",
     "allCategories": "الكل",
+    "all": "عرض الكل",
+    "architecture": "العمارة",
+    "life": "الحياة",
     "noWorks": "لا توجد أعمال في هذا التصنيف",
     "showInfo": "عرض المعلومات",
     "hideInfo": "إخفاء المعلومات",
@@ -92,7 +95,6 @@
       "categories": {
         "collaboration": "تعاون",
         "inquiry": "استفسار",
-        "acquisition": "اقتناء",
         "media": "إعلام",
         "other": "أخرى"
       },

@@ -30,6 +30,9 @@
   "portfolio": {
     "title": "Portfolio",
     "allCategories": "All",
+    "all": "All",
+    "architecture": "Architecture",
+    "life": "Life",
     "noWorks": "No works in this category",
     "showInfo": "Show info",
     "hideInfo": "Hide info",
@@ -92,7 +95,6 @@
       "categories": {
         "collaboration": "Collaboration",
         "inquiry": "Inquiry",
-        "acquisition": "Acquisition",
         "media": "Media",
         "other": "Other"
       },

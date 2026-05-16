@@ -24,6 +24,7 @@ async function getItems() {
     return await db.acquireItem.findMany({
       where: { isActive: true },
       include: {
+        // shippingAvailable included automatically (scalar field)
         work: {
           select: {
             id: true,
@@ -198,7 +199,7 @@ export default async function AcquirePage() {
         }
 
         .aq-step-title {
-          font-size: 0.8rem;
+          font-size: 0.96rem;
           font-weight: 500;
           color: var(--text-primary);
           font-family: var(--font-heading);
@@ -206,7 +207,7 @@ export default async function AcquirePage() {
         }
 
         .aq-step-desc {
-          font-size: 0.72rem;
+          font-size: 0.864rem;
           color: var(--text-subtle);
           line-height: 1.5;
           margin: 0;
@@ -255,7 +256,7 @@ export default async function AcquirePage() {
         }
 
         .aq-cert-title {
-          font-size: 0.9rem;
+          font-size: 1.08rem;
           font-weight: 500;
           color: var(--text-primary);
           margin-bottom: 0.5rem;
@@ -263,7 +264,7 @@ export default async function AcquirePage() {
         }
 
         .aq-cert-desc {
-          font-size: 0.8rem;
+          font-size: 0.96rem;
           color: var(--text-secondary);
           line-height: 1.7;
           margin: 0;

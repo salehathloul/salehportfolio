@@ -6,10 +6,15 @@ import { useCallback, useEffect, useState } from "react";
 
 interface Order {
   id: string;
+  groupId: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  country: string | null;
+  city: string | null;
+  quantity: number;
   message: string | null;
+  framingOption: string | null;
   status: string;
   notes: string | null;
   priceSent: number | null;
@@ -99,9 +104,25 @@ function OrderDetail({
             <div className="detail-row"><span>الاسم</span><strong>{order.customerName}</strong></div>
             <div className="detail-row"><span>البريد</span><a href={`mailto:${order.customerEmail}`} dir="ltr">{order.customerEmail}</a></div>
             <div className="detail-row"><span>الجوال</span><span dir="ltr">{order.customerPhone}</span></div>
+            {(order.country || order.city) && (
+              <div className="detail-row">
+                <span>الموقع</span>
+                <span>{[order.city, order.country].filter(Boolean).join("، ")}</span>
+              </div>
+            )}
+            <div className="detail-row">
+              <span>العدد</span>
+              <strong>{order.quantity ?? 1} {(order.quantity ?? 1) > 1 ? "نسخ" : "نسخة"}</strong>
+            </div>
             {order.message && (
               <div className="detail-row align-top"><span>الرسالة</span><p>{order.message}</p></div>
             )}
+            <div className="detail-row">
+              <span>التأطير</span>
+              <strong>
+                {order.framingOption === "with_frame" ? "🖼 مع إطار" : "بدون إطار"}
+              </strong>
+            </div>
           </div>
 
           {/* Status */}
@@ -161,11 +182,18 @@ function OrderDetail({
           </div>
 
           <div className="detail-footer">
-            <p className="detail-date">
-              {new Date(order.createdAt).toLocaleDateString("ar-SA", {
-                year: "numeric", month: "long", day: "numeric",
-              })}
-            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+              <p className="detail-date">
+                {new Date(order.createdAt).toLocaleDateString("ar-SA", {
+                  year: "numeric", month: "long", day: "numeric",
+                })}
+              </p>
+              {order.groupId && (
+                <p style={{ fontSize: "0.65rem", color: "var(--text-subtle)", direction: "ltr" }}>
+                  Group: {order.groupId.slice(0, 8)}…
+                </p>
+              )}
+            </div>
             <button onClick={save} disabled={saving} className="btn-primary">
               {saving ? "جاري الحفظ..." : saved ? "✓ تم" : "حفظ"}
             </button>
@@ -241,6 +269,7 @@ export default function OrdersPage() {
                 <th>العمل</th>
                 <th>المقتني</th>
                 <th>المقاس</th>
+                <th>التأطير</th>
                 <th>الحالة</th>
                 <th>السعر</th>
                 <th>التاريخ</th>
@@ -265,6 +294,11 @@ export default function OrdersPage() {
                     <p className="orders-customer-email">{order.customerEmail}</p>
                   </td>
                   <td><span dir="ltr">{order.size.label}</span></td>
+                  <td>
+                    <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                      {order.framingOption === "with_frame" ? "🖼 مع إطار" : "بدون إطار"}
+                    </span>
+                  </td>
                   <td>
                     <span
                       className="orders-status-dot"

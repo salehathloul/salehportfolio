@@ -14,12 +14,18 @@ export async function sendNewOrderNotification(data: {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  country?: string;
+  city?: string;
+  quantity?: number;
   workTitle: string;
   workCode: string;
   size: string;
   message?: string;
+  framingOption?: string;
 }) {
   if (!ADMIN) return;
+  const framingLabel = data.framingOption === "with_frame" ? "مع إطار" : "بدون إطار";
+  const qty = data.quantity ?? 1;
   return getResend().emails.send({
     from: FROM,
     to: ADMIN,
@@ -30,12 +36,79 @@ export async function sendNewOrderNotification(data: {
         <table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
           <tr><td style="padding: 0.5rem 0; color: #555; width: 140px;">العمل</td><td><strong>${data.workTitle}</strong> — ${data.workCode}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555;">المقاس</td><td>${data.size}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">العدد</td><td>${qty} ${qty > 1 ? "نسخ" : "نسخة"}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">التأطير</td><td>${framingLabel}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555;">الاسم</td><td>${data.customerName}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555;">البريد</td><td dir="ltr">${data.customerEmail}</td></tr>
           <tr><td style="padding: 0.5rem 0; color: #555;">الجوال</td><td dir="ltr">${data.customerPhone}</td></tr>
+          ${data.country ? `<tr><td style="padding: 0.5rem 0; color: #555;">الدولة</td><td>${data.country}</td></tr>` : ""}
+          ${data.city ? `<tr><td style="padding: 0.5rem 0; color: #555;">المدينة</td><td>${data.city}</td></tr>` : ""}
           ${data.message ? `<tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">الرسالة</td><td>${data.message}</td></tr>` : ""}
         </table>
         <p style="color: #555; font-size: 0.875rem;">رقم الطلب: <code>${data.orderId}</code></p>
+      </div>
+    `,
+  });
+}
+
+// ── Order: notify owner — grouped cart (multiple works) ──────────────────────
+
+export async function sendGroupOrderNotification(data: {
+  groupId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  country?: string;
+  city?: string;
+  message?: string;
+  items: {
+    orderId: string;
+    workTitle: string;
+    workCode: string;
+    size: string;
+    framingOption: string;
+    quantity: number;
+  }[];
+}) {
+  if (!ADMIN) return;
+  const itemsHtml = data.items
+    .map((it, idx) => {
+      const framingLabel = it.framingOption === "with_frame" ? "مع إطار" : "بدون إطار";
+      const qty = it.quantity;
+      return `
+        <tr><td colspan="2" style="padding: 0.75rem 0 0.25rem; font-weight: 600; color: #111;">${idx + 1}. ${it.workTitle} — ${it.workCode}</td></tr>
+        <tr><td style="padding: 0.25rem 0 0.25rem 1rem; color: #555; width: 140px;">المقاس</td><td>${it.size}</td></tr>
+        <tr><td style="padding: 0.25rem 0 0.25rem 1rem; color: #555;">العدد</td><td>${qty} ${qty > 1 ? "نسخ" : "نسخة"}</td></tr>
+        <tr><td style="padding: 0.25rem 0 0.5rem 1rem; color: #555;">التأطير</td><td>${framingLabel}</td></tr>
+      `;
+    })
+    .join("");
+
+  return getResend().emails.send({
+    from: FROM,
+    to: ADMIN,
+    subject: `طلب اقتناء جديد — ${data.items.length} ${data.items.length > 1 ? "أعمال" : "عمل"} — ${data.customerName}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+        <h2 style="border-bottom: 2px solid #111; padding-bottom: 0.5rem;">
+          طلب اقتناء جديد${data.items.length > 1 ? ` (${data.items.length} أعمال)` : ""}
+        </h2>
+
+        <h3 style="font-size: 0.9rem; color: #555; font-weight: 500; margin: 1.25rem 0 0.5rem;">الأعمال المطلوبة</h3>
+        <table style="width:100%; border-collapse: collapse; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+          ${itemsHtml}
+        </table>
+
+        <h3 style="font-size: 0.9rem; color: #555; font-weight: 500; margin: 1.25rem 0 0.5rem;">بيانات المقتني</h3>
+        <table style="width:100%; border-collapse: collapse; margin: 0.5rem 0;">
+          <tr><td style="padding: 0.5rem 0; color: #555; width: 140px;">الاسم</td><td>${data.customerName}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">البريد</td><td dir="ltr">${data.customerEmail}</td></tr>
+          <tr><td style="padding: 0.5rem 0; color: #555;">الجوال</td><td dir="ltr">${data.customerPhone}</td></tr>
+          ${data.country ? `<tr><td style="padding: 0.5rem 0; color: #555;">الدولة</td><td>${data.country}</td></tr>` : ""}
+          ${data.city ? `<tr><td style="padding: 0.5rem 0; color: #555;">المدينة</td><td>${data.city}</td></tr>` : ""}
+          ${data.message ? `<tr><td style="padding: 0.5rem 0; color: #555; vertical-align: top;">الرسالة</td><td>${data.message}</td></tr>` : ""}
+        </table>
+        <p style="color: #888; font-size: 0.8rem; margin-top: 1.5rem;">رقم المجموعة: <code>${data.groupId}</code></p>
       </div>
     `,
   });
@@ -48,7 +121,9 @@ export async function sendOrderConfirmation(data: {
   customerEmail: string;
   workTitle: string;
   size: string;
+  quantity?: number;
 }) {
+  const qty = data.quantity ?? 1;
   return getResend().emails.send({
     from: FROM,
     to: data.customerEmail,
@@ -57,7 +132,7 @@ export async function sendOrderConfirmation(data: {
       <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
         <h2>شكراً لاهتمامك</h2>
         <p>مرحباً ${data.customerName}،</p>
-        <p>تم استلام طلبك لاقتناء <strong>${data.workTitle}</strong> بمقاس <strong>${data.size}</strong>.</p>
+        <p>تم استلام طلبك لاقتناء <strong>${qty > 1 ? `${qty} نسخ من ` : ""}</strong><strong>${data.workTitle}</strong> بمقاس <strong>${data.size}</strong>.</p>
         <p>سيتم التواصل معك قريباً بالسعر وتفاصيل الاقتناء.</p>
         <br>
         <p style="color: #555; font-size: 0.875rem;">صالح الهذلول</p>
@@ -225,4 +300,64 @@ export async function sendContactNotification(data: {
       </div>
     `,
   });
+}
+
+// ── Newsletter: broadcast new post to all active subscribers ─────────────────
+
+export async function sendNewsletterBroadcast(data: {
+  titleAr: string;
+  titleEn: string | null;
+  slug: string;
+  coverImage?: string | null;
+  subscribers: { email: string }[];
+}) {
+  if (!data.subscribers.length) return;
+
+  const siteUrl = process.env.NEXTAUTH_URL ?? "https://salehalhuthloul.com";
+  const postUrlAr = `${siteUrl}/ar/blog/${data.slug}`;
+  const postUrlEn = `${siteUrl}/en/blog/${data.slug}`;
+  const resend = getResend();
+
+  const coverHtml = data.coverImage
+    ? `<img src="${data.coverImage}" alt="${data.titleAr}" style="width:100%; max-height:320px; object-fit:cover; border-radius:8px; margin-bottom:1.5rem;" />`
+    : "";
+
+  const unsubUrl = `${siteUrl}/api/newsletter/unsubscribe?email=__EMAIL__`;
+
+  // Resend allows up to 100 recipients per call — batch if needed
+  const BATCH = 50;
+  for (let i = 0; i < data.subscribers.length; i += BATCH) {
+    const batch = data.subscribers.slice(i, i + BATCH);
+    await Promise.allSettled(
+      batch.map(({ email }) =>
+        resend.emails.send({
+          from: FROM,
+          to: email,
+          subject: `${data.titleAr}${data.titleEn ? ` — ${data.titleEn}` : ""}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 620px; margin: 0 auto; color: #111; background: #fff; padding: 2rem;">
+              ${coverHtml}
+              <h2 dir="rtl" style="font-size: 1.5rem; font-weight: 400; margin: 0 0 0.5rem; line-height: 1.3;">${data.titleAr}</h2>
+              ${data.titleEn ? `<p style="font-size: 1rem; color: #555; margin: 0 0 1.5rem;">${data.titleEn}</p>` : ""}
+              <table style="margin: 1.5rem 0;">
+                <tr>
+                  <td style="padding-inline-end: 0.75rem;">
+                    <a href="${postUrlAr}" style="display:inline-block; background:#111; color:#fff; padding: 0.6rem 1.5rem; border-radius:6px; text-decoration:none; font-size:0.9rem;">
+                      اقرأ المقال
+                    </a>
+                  </td>
+                  ${data.titleEn ? `<td><a href="${postUrlEn}" style="display:inline-block; border:1px solid #ccc; color:#111; padding: 0.6rem 1.5rem; border-radius:6px; text-decoration:none; font-size:0.9rem;">Read post</a></td>` : ""}
+                </tr>
+              </table>
+              <hr style="border:none; border-top:1px solid #eee; margin: 2rem 0;" />
+              <p style="font-size:0.75rem; color:#999; direction:rtl;">
+                تلقّيت هذا البريد لاشتراكك في مدونة صالح الهذلول.
+                <a href="${unsubUrl.replace("__EMAIL__", encodeURIComponent(email))}" style="color:#999;">إلغاء الاشتراك</a>
+              </p>
+            </div>
+          `,
+        })
+      )
+    );
+  }
 }

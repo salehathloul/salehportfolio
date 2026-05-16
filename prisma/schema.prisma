@@ -133,6 +133,8 @@ model Work {
   locationEn    String?
   descriptionAr String?
   descriptionEn String?
+  captionAr     String?  // كابشن قصير يُعرض أسفل الصورة
+  captionEn     String?
   imageUrl      String
   width         Int
   height        Int
@@ -187,14 +189,15 @@ model Project {
   slug          String         @unique
   titleAr       String
   titleEn       String
-  descriptionAr String?        // وصف المشروع بالعربية
-  descriptionEn String?        // وصف المشروع بالإنجليزية
+  descriptionAr String?          // وصف المشروع بالعربية
+  descriptionEn String?          // وصف المشروع بالإنجليزية
   coverImage    String         // صورة الغلاف في شبكة المعرض
   order         Int            @default(0)
-  isPublished   Boolean        @default(true)
-  images        ProjectImage[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  isPublished     Boolean        @default(true)
+  showInPortfolio Boolean        @default(true) // يظهر في تصنيف "مشاريع فوتوغرافية"
+  images          ProjectImage[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model ProjectImage {
@@ -221,6 +224,7 @@ model BlogPost {
   publishedAt       DateTime?
   scheduledAt       DateTime?    // وقت النشر التلقائي المجدوَل
   signatureDisabled Boolean       @default(false)
+  showCoverInPost   Boolean       @default(true)   // إظهار صورة الغلاف في مقدمة التدوينة
   likesCount        Int           @default(0)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -283,15 +287,16 @@ model MagicToken {
 }
 
 model AcquireItem {
-  id          String        @id @default(cuid())
-  work        Work          @relation(fields: [workId], references: [id])
-  workId      String        @unique
-  isActive    Boolean       @default(true)
-  scheduledAt DateTime?    // وقت التفعيل التلقائي المجدوَل
-  specs       Json?         // Array of { labelAr: string; labelEn: string; value: string }
-  sizes       AcquireSize[]
-  orders      Order[]
-  createdAt   DateTime      @default(now())
+  id                String        @id @default(cuid())
+  work              Work          @relation(fields: [workId], references: [id])
+  workId            String        @unique
+  isActive          Boolean       @default(true)
+  shippingAvailable Boolean       @default(false) // هل التوصيل متاح لهذه القطعة؟
+  scheduledAt       DateTime?     // وقت التفعيل التلقائي المجدوَل
+  specs             Json?         // Array of { labelAr: string; labelEn: string; value: string }
+  sizes             AcquireSize[]
+  orders            Order[]
+  createdAt         DateTime      @default(now())
 }
 
 model AcquireSize {
@@ -314,7 +319,12 @@ model Order {
   customerName  String
   customerEmail String
   customerPhone String
+  country       String?     // بلد العميل
+  city          String?     // مدينة العميل
+  quantity      Int         @default(1) // عدد النسخ المطلوبة
   message       String?
+  framingOption String?     @default("without_frame") // "with_frame" | "without_frame"
+  groupId       String?     // يربط طلبات نفس السلة معاً
   status        String      @default("new")
   notes         String?
   priceSent     Float?

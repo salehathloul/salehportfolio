@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import BlogList from "@/components/blog/BlogList";
+import NewsletterForm from "@/components/newsletter/NewsletterForm";
 
 export async function generateMetadata({
   params,
@@ -40,12 +41,19 @@ async function getPosts() {
 
 export default async function BlogPage() {
   const t = await getTranslations("blog");
+  const locale = (await getLocale()) as "ar" | "en";
   const posts = await getPosts();
+  const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
     <>
-      <div className="bp-header container">
-        <h1 className="bp-title">{t("title")}</h1>
+      <div className="bp-header container" dir={dir}>
+        <div className="bp-header-row">
+          <h1 className="bp-title">{t("title")}</h1>
+          <div className="bp-nl-inline">
+            <NewsletterForm locale={locale} variant="inline" />
+          </div>
+        </div>
       </div>
 
       <div className="bp-body container">
@@ -55,9 +63,17 @@ export default async function BlogPage() {
       <style>{`
         .bp-header {
           padding-top: 3.5rem;
-          padding-bottom: 2.5rem;
+          padding-bottom: 2rem;
           border-bottom: 1px solid var(--border-subtle);
           margin-bottom: 3rem;
+        }
+
+        .bp-header-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.5rem;
+          flex-wrap: wrap;
         }
 
         .bp-title {
@@ -66,6 +82,10 @@ export default async function BlogPage() {
           font-weight: 300;
           color: var(--text-primary);
           letter-spacing: -0.02em;
+        }
+
+        .bp-nl-inline {
+          flex-shrink: 0;
         }
 
         .bp-body {

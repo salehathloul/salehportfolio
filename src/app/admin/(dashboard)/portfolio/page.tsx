@@ -11,7 +11,7 @@ export default async function AdminPortfolioPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
 
-  const [works, categories, settings] = await Promise.all([
+  const [works, categories, projects, settings] = await Promise.all([
     db.work.findMany({
       orderBy: { order: "asc" },
       include: {
@@ -23,6 +23,14 @@ export default async function AdminPortfolioPage() {
     db.category.findMany({
       orderBy: { order: "asc" },
       include: { _count: { select: { works: true } } },
+    }),
+    db.project.findMany({
+      orderBy: { order: "asc" },
+      select: {
+        id: true, slug: true, titleAr: true, titleEn: true,
+        coverImage: true, isPublished: true, showInPortfolio: true,
+        _count: { select: { images: true } },
+      },
     }),
     db.siteSettings.findUnique({ where: { id: "main" } }),
   ]);
@@ -42,6 +50,7 @@ export default async function AdminPortfolioPage() {
         images: w.images,
       }))}
       initialCategories={categories}
+      initialProjects={projects}
       initialDisplaySettings={{ availableLayouts, defaultLayout }}
     />
   );

@@ -27,6 +27,7 @@ interface WorkImage {
 interface AcquireItem {
   id: string;
   isActive: boolean;
+  shippingAvailable: boolean;
   scheduledAt?: string | null;
   specs?: Spec[] | null;
   work: {
@@ -675,6 +676,15 @@ export default function AcquireAdminPage() {
     fetchItems();
   }
 
+  async function toggleShipping(item: AcquireItem) {
+    await fetch(`/api/acquire/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shippingAvailable: !item.shippingAvailable }),
+    });
+    fetchItems();
+  }
+
   async function removeItem(id: string) {
     if (!confirm("إزالة هذا العمل من الاقتناء؟")) return;
     await fetch(`/api/acquire/${id}`, { method: "DELETE" });
@@ -764,6 +774,13 @@ export default function AcquireAdminPage() {
                         onChange={(e) => scheduleItem(item, e.target.value)}
                       />
                     )}
+                    <button
+                      onClick={() => toggleShipping(item)}
+                      className={`btn-outline btn-sm ${item.shippingAvailable ? "btn-shipping--on" : ""}`}
+                      title={item.shippingAvailable ? "إيقاف التوصيل" : "تفعيل التوصيل"}
+                    >
+                      {item.shippingAvailable ? "📦 توصيل" : "توصيل"}
+                    </button>
                     <button
                       onClick={() => setEditingItem(item)}
                       className="btn-outline btn-sm"

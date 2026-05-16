@@ -4,7 +4,7 @@ import { useState } from "react";
 
 interface Props {
   locale: "ar" | "en";
-  variant?: "footer" | "section"; // footer = inline compact, section = standalone card
+  variant?: "footer" | "section" | "inline"; // inline = compact row for blog header
 }
 
 const T = {
@@ -63,10 +63,11 @@ export default function NewsletterForm({ locale, variant = "section" }: Props) {
   }
 
   const isFooter = variant === "footer";
+  const isInline = variant === "inline";
 
   return (
-    <div className={`nl-wrap nl-${variant}`} dir={dir}>
-      {!isFooter && (
+    <div className={`nl-wrap nl-${variant ?? "section"}`} dir={dir}>
+      {!isFooter && !isInline && (
         <>
           <h3 className="nl-heading">{t.heading}</h3>
           <p className="nl-sub">{t.sub}</p>
@@ -122,6 +123,16 @@ export default function NewsletterForm({ locale, variant = "section" }: Props) {
 
         /* Footer variant */
         .nl-footer { }
+
+        /* Inline variant (blog header) */
+        .nl-inline { }
+        .nl-inline .nl-form {
+          margin-inline: 0;
+          max-width: 300px;
+        }
+        .nl-inline .nl-input { height: 36px; font-size: 0.8125rem; }
+        .nl-inline .nl-btn   { height: 36px; font-size: 0.8125rem; padding: 0 1rem; }
+        .nl-inline .nl-success { font-size: 0.8125rem; }
 
         /* Shared form */
         .nl-form {

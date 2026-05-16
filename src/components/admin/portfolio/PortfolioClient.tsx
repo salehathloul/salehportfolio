@@ -11,6 +11,7 @@ import { CSS } from "@dnd-kit/utilities";
 import WorkModal, { type WorkFormData, type Category } from "./WorkModal";
 import CategoryManager from "./CategoryManager";
 import DisplaySettings from "./DisplaySettings";
+import ProjectModal, { type AdminProject as ModalAdminProject } from "./ProjectModal";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -50,23 +51,37 @@ interface Work {
 
 type GridLayout = "grid" | "masonry" | "scattered";
 
+interface AdminProject {
+  id: string;
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  coverImage: string;
+  isPublished: boolean;
+  showInPortfolio: boolean;
+  _count: { images: number };
+}
+
 interface Props {
   initialWorks: Work[];
   initialCategories: Category[];
+  initialProjects: AdminProject[];
   initialDisplaySettings: { availableLayouts: GridLayout[]; defaultLayout: GridLayout };
 }
 
-type ActiveTab = "works" | "categories" | "display";
+type ActiveTab = "works" | "categories" | "projects" | "display";
 
 // ─── Main component ───────────────────────────────────────
 
 export default function PortfolioClient({
   initialWorks,
   initialCategories,
+  initialProjects,
   initialDisplaySettings,
 }: Props) {
   const [works, setWorks] = useState<Work[]>(initialWorks);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [projects, setProjects] = useState<AdminProject[]>(initialProjects);
   const [activeTab, setActiveTab] = useState<ActiveTab>("works");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
 
@@ -75,11 +90,14 @@ export default function PortfolioClient({
   const [bulkCategoryId, setBulkCategoryId] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // Modal state
+  // Modal state — work
   const [modalOpen, setModalOpen] = useState(false);
   const [editingWork, setEditingWork] = useState<WorkFormData | null>(null);
   const [modalSaving, setModalSaving] = useState(false);
   const [modalError, setModalError] = useState("");
+
+  // Modal state — project (shortcut from works tab)
+  const [quickProjectOpen, setQuickProjectOpen] = useState(false);
 
   // DnD active item
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -321,15 +339,24 @@ export default function PortfolioClient({
           <h1 className="pc-title">المعرض</h1>
           <p className="pc-subtitle">{works.length} عمل</p>
         </div>
-        <button type="button" className="pc-add-btn" onClick={openAddModal}>
-          + إضافة عمل
-        </button>
+        <div className="pc-header-actions">
+          <button type="button" className="pc-project-btn" onClick={() => setQuickProjectOpen(true)}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="1" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="1" width="5.5" height="5.5" rx="1"/>
+              <rect x="1" y="7.5" width="5.5" height="5.5" rx="1"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
+            </svg>
+            رفع مشروع فوتوغرافي
+          </button>
+          <button type="button" className="pc-add-btn" onClick={openAddModal}>
+            + إضافة عمل
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="pc-tabs">
-        {(["works", "categories", "display"] as const).map((tab) => {
-          const labels = { works: "الأعمال", categories: "التصنيفات", display: "إعدادات العرض" };
+        {(["works", "categories", "projects", "display"] as const).map((tab) => {
+          const labels = { works: "الأعمال", categories: "التصنيفات", projects: "المشاريع الفوتوغرافية", display: "إعدادات العرض" };
           return (
             <button
               key={tab}
@@ -506,6 +533,11 @@ export default function PortfolioClient({
         </div>
       )}
 
+      {/* ── Tab: Projects ── */}
+      {activeTab === "projects" && (
+        <ProjectsTab projects={projects} onUpdate={setProjects} />
+      )}
+
       {/* ── Tab: Categories ── */}
       {activeTab === "categories" && (
         <CategoryManager categories={categories} onChange={setCategories} />
@@ -520,7 +552,7 @@ export default function PortfolioClient({
         />
       )}
 
-      {/* Modal */}
+      {/* Modal — Work */}
       <WorkModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -531,7 +563,213 @@ export default function PortfolioClient({
         error={modalError}
       />
 
+      {/* Modal — Quick project (from works header) */}
+      {quickProjectOpen && (
+        <ProjectModal
+          onClose={() => setQuickProjectOpen(false)}
+          onSaved={(saved: AdminProject) => {
+            setProjects((prev) => {
+              const exists = prev.find((p) => p.id === saved.id);
+              return exists
+                ? prev.map((p) => p.id === saved.id ? saved : p)
+                : [saved, ...prev];
+            });
+            setQuickProjectOpen(false);
+          }}
+        />
+      )}
+
       <PortfolioStyles />
+    </div>
+  );
+}
+
+// ─── Projects Tab ────────────────────────────────────────
+
+function ProjectsTab({
+  projects,
+  onUpdate,
+}: {
+  projects: AdminProject[];
+  onUpdate: (p: AdminProject[]) => void;
+}) {
+  const [modalOpen, setModalOpen]     = useState(false);
+  const [editingProj, setEditingProj] = useState<AdminProject | null>(null);
+  const [saving, setSaving]           = useState<string | null>(null);
+  const [deleting, setDeleting]       = useState<string | null>(null);
+
+  async function togglePortfolio(proj: AdminProject) {
+    setSaving(proj.id);
+    const updated = { ...proj, showInPortfolio: !proj.showInPortfolio };
+    try {
+      const res = await fetch(`/api/admin/projects/${proj.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showInPortfolio: updated.showInPortfolio }),
+      });
+      if (res.ok) onUpdate(projects.map((p) => (p.id === proj.id ? updated : p)));
+    } finally { setSaving(null); }
+  }
+
+  async function deleteProject(proj: AdminProject) {
+    if (!confirm(`حذف "${proj.titleAr}"؟ لا يمكن التراجع.`)) return;
+    setDeleting(proj.id);
+    try {
+      const res = await fetch(`/api/admin/projects/${proj.id}`, { method: "DELETE" });
+      if (res.ok) onUpdate(projects.filter((p) => p.id !== proj.id));
+    } finally { setDeleting(null); }
+  }
+
+  function openNew()              { setEditingProj(null); setModalOpen(true); }
+  function openEdit(p: AdminProject) { setEditingProj(p); setModalOpen(true); }
+
+  function handleSaved(saved: ModalAdminProject) {
+    const already = projects.find((p) => p.id === saved.id);
+    if (already) {
+      onUpdate(projects.map((p) => (p.id === saved.id ? saved : p)));
+    } else {
+      onUpdate([...projects, saved]);
+    }
+  }
+
+  return (
+    <div className="pj-root">
+      {/* Toolbar */}
+      <div className="pj-toolbar">
+        <p className="pj-hint">
+          المشاريع المُفعَّلة تظهر في المعرض تحت تصنيف «مشاريع فوتوغرافية».
+        </p>
+        <button className="pj-new-btn" onClick={openNew}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M6.5 1v11M1 6.5h11"/>
+          </svg>
+          مشروع جديد
+        </button>
+      </div>
+
+      {/* List */}
+      {projects.length === 0 ? (
+        <div className="pj-empty">
+          لا توجد مشاريع بعد — ابدأ بإنشاء مشروع جديد
+        </div>
+      ) : (
+        <div className="pj-list">
+          {projects.map((proj) => (
+            <div key={proj.id} className="pj-row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={proj.coverImage} alt="" className="pj-cover" />
+              <div className="pj-info">
+                <span className="pj-title">{proj.titleAr}</span>
+                <span className="pj-meta">{proj.titleEn} · {proj._count.images} صورة</span>
+              </div>
+              <span className={`pj-badge ${proj.showInPortfolio ? "pj-badge--on" : "pj-badge--off"}`}>
+                {proj.showInPortfolio ? "في المعرض" : "مخفي"}
+              </span>
+
+              {/* Actions */}
+              <button className="pj-action-btn" onClick={() => openEdit(proj)} title="تعديل">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button
+                className={`pj-action-btn ${proj.showInPortfolio ? "pj-action-btn--warn" : "pj-action-btn--ok"}`}
+                disabled={saving === proj.id}
+                onClick={() => togglePortfolio(proj)}
+                title={proj.showInPortfolio ? "إخفاء من المعرض" : "إظهار في المعرض"}
+              >
+                {saving === proj.id ? "..." : proj.showInPortfolio
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+              <button
+                className="pj-action-btn pj-action-btn--del"
+                disabled={deleting === proj.id}
+                onClick={() => deleteProject(proj)}
+                title="حذف"
+              >
+                {deleting === proj.id ? "..." : (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal */}
+      {modalOpen && (
+        <ProjectModal
+          project={editingProj ?? undefined}
+          onClose={() => setModalOpen(false)}
+          onSaved={handleSaved}
+        />
+      )}
+
+      <style>{`
+        .pj-root { display: flex; flex-direction: column; gap: 1rem; }
+        .pj-toolbar {
+          display: flex; align-items: flex-start; justify-content: space-between;
+          gap: 1rem; flex-wrap: wrap;
+        }
+        .pj-hint {
+          font-size: 0.78rem; color: var(--text-muted);
+          flex: 1; margin: 0; padding-top: 0.15rem;
+        }
+        .pj-new-btn {
+          display: flex; align-items: center; gap: 0.4rem;
+          padding: 0.5rem 1rem; flex-shrink: 0;
+          background: var(--text-primary); color: var(--bg-primary);
+          border: none; border-radius: var(--radius-md);
+          font-size: 0.82rem; font-family: inherit; cursor: pointer;
+          transition: opacity var(--transition-fast);
+        }
+        .pj-new-btn:hover { opacity: 0.85; }
+        .pj-empty {
+          padding: 3rem; text-align: center;
+          color: var(--text-muted); font-size: 0.875rem;
+          border: 1.5px dashed var(--border); border-radius: var(--radius-lg);
+        }
+        .pj-list { display: flex; flex-direction: column; }
+        .pj-row {
+          display: flex; align-items: center; gap: 0.875rem;
+          padding: 0.75rem 0;
+          border-bottom: 1px solid var(--border-subtle);
+        }
+        .pj-row:last-child { border-bottom: none; }
+        .pj-cover {
+          width: 52px; height: 52px; object-fit: cover;
+          border-radius: var(--radius-sm); flex-shrink: 0;
+          background: var(--bg-secondary);
+        }
+        .pj-info { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+        .pj-title { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
+        .pj-meta { font-size: 0.72rem; color: var(--text-muted); }
+        .pj-badge {
+          font-size: 0.68rem; padding: 0.15rem 0.5rem;
+          border-radius: 999px; white-space: nowrap; flex-shrink: 0;
+        }
+        .pj-badge--on  { background: #dcfce7; color: #166534; }
+        .pj-badge--off { background: var(--bg-tertiary); color: var(--text-muted); }
+
+        .pj-action-btn {
+          width: 30px; height: 30px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid var(--border); border-radius: var(--radius-md);
+          background: transparent; cursor: pointer;
+          color: var(--text-muted); font-family: inherit; font-size: 0.72rem;
+          transition: all var(--transition-fast);
+        }
+        .pj-action-btn:hover:not(:disabled) { border-color: var(--text-secondary); color: var(--text-primary); }
+        .pj-action-btn--ok:hover:not(:disabled) { border-color: #16a34a; color: #16a34a; }
+        .pj-action-btn--warn:hover:not(:disabled) { border-color: #d97706; color: #d97706; }
+        .pj-action-btn--del:hover:not(:disabled) { border-color: #ef4444; color: #ef4444; }
+        .pj-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      `}</style>
     </div>
   );
 }
@@ -679,6 +917,33 @@ function PortfolioStyles() {
       }
 
       .pc-add-btn:hover { opacity: 0.85; }
+
+      .pc-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+      }
+
+      .pc-project-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+      }
+      .pc-project-btn:hover {
+        border-color: var(--text-primary);
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+      }
 
       /* Tabs */
       .pc-tabs {

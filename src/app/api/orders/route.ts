@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { sendNewOrderNotification, sendOrderConfirmation } from "@/lib/email";
+import {
+  sendGroupOrderNotification,
+  sendOrderConfirmation,
+} from "@/lib/email";
 
 // ── GET /api/orders — list all orders (admin) ─────────────────────────────────
 
@@ -31,70 +34,173 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(orders);
 }
 
-// ── POST /api/orders — submit new order (public) ─────────────────────────────
+// ── POST /api/orders — cart checkout (public) ─────────────────────────────────
+//
+// Body shape:
+// {
+//   items: [{ acquireItemId, sizeId, framingOption, quantity }],
+//   customerName, customerEmail, customerPhone,
+//   country?, city?, message?
+// }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { acquireItemId, sizeId, customerName, customerEmail, customerPhone, message } = body;
 
-  if (!acquireItemId || !sizeId || !customerName || !customerEmail || !customerPhone) {
+  const {
+    items,
+    customerName,
+    customerEmail,
+    customerPhone,
+    country,
+    city,
+    message,
+  } = body;
+
+  // ── Validate top-level fields ──────────────────────────────────────────────
+  if (!Array.isArray(items) || items.length === 0) {
+    return NextResponse.json({ error: "No items in cart" }, { status: 400 });
+  }
+  if (!customerName || !customerEmail || !customerPhone) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Validate acquire item and size
-  const acquireItem = await db.acquireItem.findUnique({
-    where: { id: acquireItemId },
-    include: {
-      work: { select: { code: true, titleAr: true, titleEn: true } },
-      sizes: true,
-    },
-  });
-  if (!acquireItem || !acquireItem.isActive) {
-    return NextResponse.json({ error: "Item not available" }, { status: 400 });
-  }
+  // ── Validate every cart item ───────────────────────────────────────────────
+  type ValidatedItem = {
+    acquireItemId: string;
+    sizeId: string;
+    framingOption: string;
+    qty: number;
+    workTitle: string;
+    workCode: string;
+    sizeLabel: string;
+  };
+  const validated: ValidatedItem[] = [];
 
-  const size = acquireItem.sizes.find((s) => s.id === sizeId);
-  if (!size) return NextResponse.json({ error: "Size not found" }, { status: 400 });
+  for (const orderItem of items) {
+    const { acquireItemId, sizeId, framingOption, quantity } = orderItem;
+    if (!acquireItemId || !sizeId) {
+      return NextResponse.json({ error: "Missing item fields" }, { status: 400 });
+    }
 
-  const remaining = size.totalEditions - size.soldEditions;
-  if (remaining <= 0) {
-    return NextResponse.json({ error: "No editions remaining" }, { status: 400 });
-  }
+    const qty = Math.max(1, Math.min(10, parseInt(String(quantity)) || 1));
 
-  const order = await db.order.create({
-    data: {
+    const acquireItem = await db.acquireItem.findUnique({
+      where: { id: acquireItemId },
+      include: {
+        work: { select: { code: true, titleAr: true, titleEn: true } },
+        sizes: true,
+      },
+    });
+
+    if (!acquireItem || !acquireItem.isActive) {
+      return NextResponse.json(
+        { error: `العمل غير متاح: ${acquireItemId}` },
+        { status: 400 }
+      );
+    }
+
+    const size = acquireItem.sizes.find((s) => s.id === sizeId);
+    if (!size) {
+      return NextResponse.json(
+        { error: `المقاس غير موجود: ${sizeId}` },
+        { status: 400 }
+      );
+    }
+
+    const remaining = size.totalEditions - size.soldEditions;
+    if (remaining <= 0) {
+      return NextResponse.json(
+        { error: `نفذت النسخ من: ${acquireItem.work.titleAr}` },
+        { status: 400 }
+      );
+    }
+    if (qty > remaining) {
+      return NextResponse.json(
+        {
+          error: `الكمية المطلوبة تتجاوز المتاح من: ${acquireItem.work.titleAr}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    validated.push({
       acquireItemId,
       sizeId,
-      customerName,
-      customerEmail,
-      customerPhone,
-      message: message ?? null,
-      status: "new",
-    },
-  });
+      framingOption: framingOption ?? "without_frame",
+      qty,
+      workTitle: acquireItem.work.titleAr,
+      workCode: acquireItem.work.code,
+      sizeLabel: size.label,
+    });
+  }
 
-  // Send emails (fire and forget — don't block response)
-  const workTitle = acquireItem.work.titleAr;
-  const workCode = acquireItem.work.code;
+  // ── Create all orders with a shared groupId ────────────────────────────────
+  const groupId = crypto.randomUUID();
+  const createdOrders: { id: string; workTitle: string; workCode: string; sizeLabel: string; framingOption: string; qty: number }[] = [];
 
+  for (const v of validated) {
+    const order = await db.order.create({
+      data: {
+        acquireItemId: v.acquireItemId,
+        sizeId: v.sizeId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        country: country?.trim() || null,
+        city: city?.trim() || null,
+        quantity: v.qty,
+        message: message ?? null,
+        framingOption: v.framingOption,
+        groupId,
+        status: "new",
+      },
+    });
+    createdOrders.push({
+      id: order.id,
+      workTitle: v.workTitle,
+      workCode: v.workCode,
+      sizeLabel: v.sizeLabel,
+      framingOption: v.framingOption,
+      qty: v.qty,
+    });
+  }
+
+  // ── Send emails (fire and forget) ──────────────────────────────────────────
   Promise.all([
-    sendNewOrderNotification({
-      orderId: order.id,
+    sendGroupOrderNotification({
+      groupId,
       customerName,
       customerEmail,
       customerPhone,
-      workTitle,
-      workCode,
-      size: size.label,
+      country: country?.trim() || undefined,
+      city: city?.trim() || undefined,
       message,
+      items: createdOrders.map((o) => ({
+        orderId: o.id,
+        workTitle: o.workTitle,
+        workCode: o.workCode,
+        size: o.sizeLabel,
+        framingOption: o.framingOption,
+        quantity: o.qty,
+      })),
     }),
     sendOrderConfirmation({
       customerName,
       customerEmail,
-      workTitle,
-      size: size.label,
+      workTitle:
+        createdOrders.length === 1
+          ? createdOrders[0].workTitle
+          : `${createdOrders.length} أعمال`,
+      size:
+        createdOrders.length === 1
+          ? createdOrders[0].sizeLabel
+          : createdOrders.map((o) => o.sizeLabel).join("، "),
+      quantity: createdOrders.reduce((sum, o) => sum + o.qty, 0),
     }),
   ]).catch(console.error);
 
-  return NextResponse.json({ id: order.id }, { status: 201 });
+  return NextResponse.json(
+    { groupId, orderIds: createdOrders.map((o) => o.id) },
+    { status: 201 }
+  );
 }
